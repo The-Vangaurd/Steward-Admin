@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Surfaces */
+    --bg: 240 6% 5%;            /* #0B0B0F */
+    --surface: 240 6% 7%;       /* #111114 */
+    --surface-2: 240 7% 10%;    /* #16161B */
+    --surface-3: 240 8% 13%;    /* #1A1A22 */
+    --border: 240 6% 16%;       /* #232328 */
+    --border-strong: 240 7% 20%;/* #2A2A35 */
+
+    /* Text */
+    --fg: 0 0% 98%;             /* #FAFAFA */
+    --fg-muted: 240 5% 65%;     /* #A1A1AA */
+    --fg-subtle: 240 4% 46%;    /* #71717A */
+
+    /* Brand / semantic */
+    --accent: 262 83% 67%;      /* #8B5CF6 */
+    --accent-fg: 0 0% 100%;
+    --success: 142 71% 45%;     /* #22C55E */
+    --warning: 38 92% 50%;      /* #F59E0B */
+    --danger: 0 84% 60%;        /* #EF4444 */
+    --info: 217 91% 60%;        /* #3B82F6 */
+
+    /* shadcn token aliases (so existing components keep working) */
+    --background: var(--bg);
+    --foreground: var(--fg);
+    --card: var(--surface);
+    --card-foreground: var(--fg);
+    --popover: var(--surface-2);
+    --popover-foreground: var(--fg);
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 10% 4%;
+    --secondary: 240 7% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 6% 14%;
+    --muted-foreground: 240 5% 65%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: var(--danger);
+    --destructive-foreground: 0 0% 98%;
+    --input: var(--border);
+    --ring: var(--accent);
+    --radius: 0.75rem;
+  }
+
+  * { @apply border-border; }
+  html, body { @apply h-full; }
+  body {
+    @apply bg-bg text-fg antialiased;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "cv02","cv03","cv04","cv11","ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3,h4,h5,h6 { @apply font-semibold tracking-tight text-fg; letter-spacing: -0.01em; }
+}
+
+@layer utilities {
+  .label-xs {
+    @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-muted;
+  }
+  .surface {
+    @apply bg-surface border border-border rounded-xl;
+  }
+  .hairline { @apply border border-border; }
+  .num { font-variant-numeric: tabular-nums; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: 3px; }
+}
+
+/* Subtle pulse for live indicator */
+@keyframes live-pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+.live-dot { animation: live-pulse 2s ease-in-out infinite; }
+
+/* ─── Kitchen Display System (KDS) styles ───────────────────────────────────
+   Used by admin/components/kitchen/** components (merged from kitchen app).    */
+
+@layer utilities {
+  .kds-card {
+    background: rgba(222, 214, 238, 0.055);
+    border: 1px solid rgba(222, 214, 238, 0.11);
+    border-radius: 12px;
+  }
+  .kds-glass {
+    background: rgba(222, 214, 238, 0.075);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(222, 214, 238, 0.11);
+  }
+  .elapsed-normal  { color: rgba(255,255,255,0.45); }
+  .elapsed-warning { color: #D9B872; font-weight: 600; }
+  .elapsed-urgent  { color: #D18B8B; font-weight: 700; }
+  .touch-target    { min-height: 52px; min-width: 52px; }
+
+  .kds-hover-lift {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .kds-hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  @keyframes kds-pulse-urgent {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(209,139,139,0.0); }
+    50%       { box-shadow: 0 0 0 5px rgba(209,139,139,0.16); }
+  }
+  @keyframes kds-pulse-pending {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(200,182,226,0.0); }
+    50%       { box-shadow: 0 0 0 5px rgba(200,182,226,0.14); }
+  }
+  @keyframes kds-enter {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes kds-shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  @keyframes kds-timer-tick {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.7; }
+  }
+  @keyframes kds-dot-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%       { transform: scale(1.4); opacity: 0.6; }
+  }
+  @keyframes kds-slide-down {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-kds-enter   { animation: kds-enter 0.25s cubic-bezier(0.16,1,0.3,1) both; }
+  .animate-kds-shimmer { animation: kds-shimmer 1.4s linear infinite; }
+  .animate-kds-tick    { animation: kds-timer-tick 2s ease-in-out infinite; }
+  .animate-kds-dot     { animation: kds-dot-pulse 2s ease-in-out infinite; }
+  .animate-kds-dot-pulse { animation: kds-dot-pulse 2s ease-in-out infinite; }
+  .animate-kds-slide   { animation: kds-slide-down 0.2s ease-out both; }
+  .animate-pulse-urgent  { animation: kds-pulse-urgent 2s ease-in-out infinite; }
+  .animate-pulse-pending { animation: kds-pulse-pending 2.5s ease-in-out infinite; }
+
+  .text-2xs { font-size: 0.625rem; line-height: 0.875rem; }
+}
+
+.kds-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 400px 100%;
+  animation: kds-shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
