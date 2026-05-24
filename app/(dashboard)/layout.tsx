@@ -17,6 +17,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/settings":             "Settings",
   "/kitchen":              "Order Queue",
   "/kitchen/availability": "Item Availability",
+  "/dosa-counter":         "Dosa Counter",
 };
 
 // Admin-only routes — KITCHEN_STAFF gets redirected away from these

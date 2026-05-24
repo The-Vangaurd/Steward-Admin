@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, Users, MonitorPlay,
-  LogOut, X, Settings, ClipboardList, ToggleLeft,
+  LogOut, X, Settings, ClipboardList, ToggleLeft, ChefHat,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +20,7 @@ const navAdmin = [
 const navKitchen = [
   { href: "/kitchen",              label: "Order Queue",      icon: ClipboardList },
   { href: "/kitchen/availability", label: "Item Availability", icon: ToggleLeft },
+  { href: "/dosa-counter",         label: "Dosa Counter",      icon: ChefHat },
 ];
 
 interface SidebarProps { open: boolean; onClose: () => void; }
