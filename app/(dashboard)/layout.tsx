@@ -20,9 +20,18 @@ const PAGE_TITLES: Record<string, string> = {
   "/dosa-counter":         "Dosa Counter",
 };
 
-// Admin-only routes — KITCHEN_STAFF gets redirected away from these
-const ADMIN_ONLY_PATHS = ["/dashboard", "/kds", "/orders", "/menu", "/staff"];
+// Admin-only routes — KITCHEN_STAFF / WAITER gets redirected away from these
+const ADMIN_ONLY_PATHS = ["/dashboard", "/kds", "/orders", "/menu", "/staff", "/settings"];
 const ALLOWED_ROLES = ["ADMIN", "SUPER_ADMIN", "KITCHEN_STAFF", "WAITER"];
+
+function resolveTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  // Check prefix matches for nested routes
+  for (const [path, title] of Object.entries(PAGE_TITLES)) {
+    if (pathname.startsWith(path + "/")) return title;
+  }
+  return "Dashboard";
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -31,6 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Both hooks now delegate to useBaseSocket — safe to call together; they join different rooms
   useSocket();
   useKitchenSocket();
 
@@ -41,7 +51,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!accessToken || !user) { router.replace("/login"); return; }
     if (!ALLOWED_ROLES.includes(user.role)) { router.replace("/login"); return; }
 
-    // Redirect kitchen-only roles away from admin-only pages
     const isKitchenOnly = user.role === "KITCHEN_STAFF" || user.role === "WAITER";
     const onAdminPage = ADMIN_ONLY_PATHS.some(
       (p) => pathname === p || pathname.startsWith(p + "/")
@@ -62,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  const title = PAGE_TITLES[pathname] ?? "Dashboard";
+  const title = resolveTitle(pathname);
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg text-fg">

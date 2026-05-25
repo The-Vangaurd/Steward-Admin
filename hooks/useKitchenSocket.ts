@@ -1,82 +1,44 @@
 "use client";
 
-import { useEffect } from "react";
+/**
+ * useKitchenSocket — Kitchen-specific socket subscription.
+ * Joins kitchen:* room; plays sound on new orders, invalidates kitchen queue.
+ */
+
+import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { acquireSocket, releaseSocket } from "@/lib/sockets";
 import { useAuthStore } from "@/stores/auth.store";
-import { settingsStore } from "@/stores/settings.store";
+import { useBaseSocket } from "@/hooks/useBaseSocket";
 import { KITCHEN_ORDERS_QUERY_KEY } from "@/hooks/useKitchenOrders";
 import { MENU_ITEMS_QUERY_KEY } from "@/hooks/useItemAvailability";
 import { playNewOrderSound } from "@/lib/sound";
 
 export function useKitchenSocket() {
-  const { accessToken, user } = useAuthStore();
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!accessToken || !user?.restaurantId) return;
+  const invalidateKitchenOrders = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
+  }, [queryClient]);
 
-    const currentSocket = acquireSocket(accessToken);
-    const room = `kitchen:${user.restaurantId}`;
+  const invalidateMenuItems = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: MENU_ITEMS_QUERY_KEY });
+  }, [queryClient]);
 
-    const invalidateKitchenOrders = () => {
-      queryClient.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
-    };
+  const handleNewOrder = useCallback(() => {
+    invalidateKitchenOrders();
+    playNewOrderSound();
+  }, [invalidateKitchenOrders]);
 
-    const invalidateMenuItems = () => {
-      queryClient.invalidateQueries({ queryKey: MENU_ITEMS_QUERY_KEY });
-    };
+  const restaurantId = user?.restaurantId;
 
-    const joinKitchenRoom = () => {
-      currentSocket.emit(
-        "join_room",
-        room,
-        (error: { code: string; message: string } | null) => {
-          if (error) {
-            console.error("[socket] failed to join kitchen room", { room, error });
-          }
-        }
-      );
-      settingsStore.setWsConnected(true);
-    };
-
-    const handleDisconnect = () => {
-      settingsStore.setWsConnected(false);
-    };
-
-    const handleNewOrder = () => {
-      invalidateKitchenOrders();
-      playNewOrderSound();
-    };
-
-    const handleConnectError = (error: Error) => {
-      console.error("[socket] kitchen connection failed", error.message);
-      settingsStore.setWsConnected(false);
-    };
-
-    currentSocket.on("connect", joinKitchenRoom);
-    currentSocket.on("disconnect", handleDisconnect);
-    currentSocket.on("connect_error", handleConnectError);
-    currentSocket.on("kitchen:new_order", handleNewOrder);
-    currentSocket.on("order:updated", invalidateKitchenOrders);
-    currentSocket.on("item:availability_changed", invalidateMenuItems);
-
-    if (!currentSocket.connected) {
-      currentSocket.connect();
-    } else {
-      joinKitchenRoom();
-    }
-
-    return () => {
-      currentSocket.off("connect", joinKitchenRoom);
-      currentSocket.off("disconnect", handleDisconnect);
-      currentSocket.off("connect_error", handleConnectError);
-      currentSocket.off("kitchen:new_order", handleNewOrder);
-      currentSocket.off("order:updated", invalidateKitchenOrders);
-      currentSocket.off("item:availability_changed", invalidateMenuItems);
-      currentSocket.emit("leave_room", room);
-      settingsStore.setWsConnected(false);
-      releaseSocket();
-    };
-  }, [accessToken, user?.restaurantId, queryClient]);
+  useBaseSocket({
+    enabled: !!restaurantId,
+    rooms: restaurantId ? [`kitchen:${restaurantId}`] : [],
+    events: {
+      "kitchen:new_order": handleNewOrder,
+      "order:updated": invalidateKitchenOrders,
+      "item:availability_changed": invalidateMenuItems,
+    },
+  });
 }
