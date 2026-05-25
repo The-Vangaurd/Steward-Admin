@@ -8,7 +8,7 @@ import { disconnectSocket } from "@/lib/sockets";
 import type { User } from "@/types";
 
 export function useAuth() {
-  const { accessToken, user, setAuth, clearAuth } = useAuthStore();
+  const { accessToken, user, setAuth, setAccessToken, clearAuth } = useAuthStore();
   const router = useRouter();
 
   const logout = useCallback(async () => {
@@ -25,12 +25,20 @@ export function useAuth() {
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
-  return { accessToken, user, isAdmin, setAuth, clearAuth, logout };
+  return { accessToken, user, isAdmin, setAuth, setAccessToken, clearAuth, logout };
 }
 
 export function useRequireAuth() {
+  // NOTE: accessToken starts null on hard refresh even for logged-in users.
+  // The axios interceptor will silently refresh it on the first authenticated
+  // request. Use `user` (persisted in localStorage) for immediate render decisions
+  // and treat a missing accessToken as "pending refresh" rather than "logged out".
   const { accessToken, user } = useAuthStore();
-  return { isAuthenticated: !!accessToken, user };
+  return {
+    isAuthenticated: !!accessToken,
+    isPendingRefresh: !accessToken && !!user, // user known but token not yet refreshed
+    user,
+  };
 }
 
 export type { User };
