@@ -38,7 +38,7 @@ function SummaryStrip({
   theme,
 }: {
   items: AggregatedDosaItem[];
-  theme: typeof SECTION_THEME["current"];
+  theme: typeof SECTION_THEME[keyof typeof SECTION_THEME];
 }) {
   if (items.length === 0) return null;
 

@@ -33,11 +33,11 @@ export function StatusActions({ order }: StatusActionsProps) {
   const isPrimaryPending =
     isPending &&
     variables?.orderId === order.id &&
-    variables?.input.status === primaryNext;
+    variables?.input?.status === primaryNext;
   const isCancelPending =
     isPending &&
     variables?.orderId === order.id &&
-    variables?.input.status === "CANCELLED";
+    variables?.input?.status === "CANCELLED";
 
   const handleAction = (status: OrderStatus) => {
     mutate({ orderId: order.id, input: { status } });
