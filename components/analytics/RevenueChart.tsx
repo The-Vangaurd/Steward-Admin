@@ -7,17 +7,16 @@ import { format } from "date-fns";
 import type { RevenueDataPoint } from "@/types";
 import type { TooltipProps } from "recharts";
 
-// Lazy-load the heavy recharts components — excluded from initial bundle
 const AreaChart = dynamic(
   () => import("recharts").then((m) => m.AreaChart as any),
   { ssr: false, loading: () => <Skeleton className="h-56 w-full" /> }
-);
-const Area = dynamic(() => import("recharts").then((m) => m.Area as any), { ssr: false });
-const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis as any), { ssr: false });
-const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis as any), { ssr: false });
-const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid as any), { ssr: false });
-const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip as any), { ssr: false });
-const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer as any), { ssr: false });
+) as any;
+const Area = dynamic(() => import("recharts").then((m) => m.Area as any), { ssr: false }) as any;
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis as any), { ssr: false }) as any;
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis as any), { ssr: false }) as any;
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid as any), { ssr: false }) as any;
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip as any), { ssr: false }) as any;
+const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer as any), { ssr: false }) as any;
 
 const ACCENT = "#8B5CF6";
 const GRID = "#232328";
