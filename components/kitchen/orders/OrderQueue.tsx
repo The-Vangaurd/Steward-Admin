@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { AlertCircle, ClipboardList, RefreshCw } from "lucide-react";
 import { OrderCard } from "./OrderCard";
 import { OrderCardSkeleton } from "./OrderCardSkeleton";
@@ -16,7 +16,6 @@ interface OrderQueueProps {
 
 const ACTIVE_STATUSES: OrderStatus[] = ["PENDING", "CONFIRMED", "PREPARING", "READY"];
 
-/** Sort: PENDING first, then CONFIRMED, PREPARING, READY; within status: oldest first */
 const STATUS_SORT_ORDER: Record<OrderStatus, number> = {
   PENDING:   0,
   CONFIRMED: 1,
@@ -44,7 +43,7 @@ function sortOrders(orders: KitchenOrder[]): KitchenOrder[] {
   });
 }
 
-export function OrderQueue({ filter = "all" }: OrderQueueProps) {
+export const OrderQueue = memo(function OrderQueue({ filter = "all" }: OrderQueueProps) {
   const { data: orders, isLoading, isError, error, refetch, isFetching } =
     useKitchenOrders();
 
@@ -55,7 +54,6 @@ export function OrderQueue({ filter = "all" }: OrderQueueProps) {
     return sortOrders(f);
   }, [orders, filter]);
 
-  /* ── Loading ─────────────────────────────────────────────────────────── */
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 p-1">
@@ -66,7 +64,6 @@ export function OrderQueue({ filter = "all" }: OrderQueueProps) {
     );
   }
 
-  /* ── Error ───────────────────────────────────────────────────────────── */
   if (isError) {
     const msg =
       (error as { response?: { data?: { message?: string } } })?.response?.data
@@ -98,7 +95,6 @@ export function OrderQueue({ filter = "all" }: OrderQueueProps) {
     );
   }
 
-  /* ── Empty ───────────────────────────────────────────────────────────── */
   if (filtered.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-28 text-center">
@@ -115,7 +111,6 @@ export function OrderQueue({ filter = "all" }: OrderQueueProps) {
     );
   }
 
-  /* ── Queue grid ──────────────────────────────────────────────────────── */
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 p-1">
       {filtered.map((order) => (
@@ -123,4 +118,4 @@ export function OrderQueue({ filter = "all" }: OrderQueueProps) {
       ))}
     </div>
   );
-}
+});

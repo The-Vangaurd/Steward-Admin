@@ -1,17 +1,30 @@
 "use client";
 
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps } from "recharts";
-import { format } from "date-fns";
+import { memo, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 import type { RevenueDataPoint } from "@/types";
+import type { TooltipProps } from "recharts";
 
-interface RevenueChartProps { data?: RevenueDataPoint[]; loading?: boolean; }
+// Lazy-load the heavy recharts components — excluded from initial bundle
+const AreaChart = dynamic(
+  () => import("recharts").then((m) => m.AreaChart),
+  { ssr: false, loading: () => <Skeleton className="h-56 w-full" /> }
+);
+const Area = dynamic(() => import("recharts").then((m) => m.Area), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
+const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer), { ssr: false });
 
 const ACCENT = "#8B5CF6";
 const GRID = "#232328";
 const AXIS = "#71717A";
 
-function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+// Stable component reference — won't cause Tooltip to remount
+const CustomTooltip = memo(function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 shadow-elevated">
@@ -19,14 +32,21 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
       <p className="text-sm font-semibold text-fg num">₹{payload[0].value?.toLocaleString("en-IN")}</p>
     </div>
   );
-}
+});
 
-export function RevenueChart({ data, loading }: RevenueChartProps) {
-  const formatted = data?.map((d) => ({
-    ...d,
-    label: format(new Date(d.date), "dd MMM"),
-    revenue: typeof d.revenue === "string" ? parseFloat(d.revenue) : d.revenue,
-  }));
+interface RevenueChartProps { data?: RevenueDataPoint[]; loading?: boolean; }
+
+export const RevenueChart = memo(function RevenueChart({ data, loading }: RevenueChartProps) {
+  // Memoize formatted data — prevents re-formatting on parent re-render
+  const formatted = useMemo(
+    () =>
+      data?.map((d) => ({
+        ...d,
+        label: format(new Date(d.date), "dd MMM"),
+        revenue: typeof d.revenue === "string" ? parseFloat(d.revenue) : d.revenue,
+      })),
+    [data]
+  );
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
@@ -64,4 +84,4 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
       )}
     </div>
   );
-}
+});

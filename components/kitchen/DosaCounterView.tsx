@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo, useCallback } from "react";
 import { ChefHat, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useKitchenOrders, KITCHEN_ORDERS_QUERY_KEY } from "@/hooks/useKitchenOrders";
@@ -9,30 +10,19 @@ import { OrderCardSkeleton } from "@/components/kitchen/orders/OrderCardSkeleton
 import { ConnectionStatus } from "@/components/kitchen/layout/ConnectionStatus";
 import { cn } from "@/lib/utils";
 
-/**
- * DosaCounterView
- *
- * Specialized dosa preparation queue, divided into two sections:
- *
- *   CURRENT  — orders whose cumulative dosa qty fits within the cap (8).
- *   UPCOMING — remaining orders to be prepared next.
- *
- * Data source: useKitchenOrders() (shared cache, zero duplication).
- * Real-time updates: inherited from useKitchenSocket() in the layout.
- */
 export function DosaCounterView() {
   const { data: orders = [], isLoading, isError } = useKitchenOrders();
   const queryClient = useQueryClient();
 
-  const { current, upcoming } = partitionDosaQueue(orders);
+  // Memoize expensive partition — only recalculates when orders change
+  const { current, upcoming } = useMemo(() => partitionDosaQueue(orders), [orders]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
-  };
+  }, [queryClient]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden px-5 py-5 lg:px-6 lg:py-6">
-      {/* ── Page header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-shrink-0 pb-5">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D9B872]/10 border border-[#D9B872]/20">
@@ -62,10 +52,8 @@ export function DosaCounterView() {
         </div>
       </div>
 
-      {/* ── Cap indicator bar ─────────────────────────────────────────────── */}
-      <CapBar orders={orders} current={current} />
+      <CapBar current={current} />
 
-      {/* ── Content ───────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto scrollbar-thin mt-5">
         {isLoading ? (
           <LoadingSkeleton />
@@ -73,13 +61,8 @@ export function DosaCounterView() {
           <ErrorState onRetry={handleRefresh} />
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 pb-6 items-start">
-            {/* Left column — CURRENT */}
             <DosaOrderSection variant="current" orders={current} />
-
-            {/* Divider (visible on xl+ two-column layout) */}
             <div className="hidden xl:block absolute inset-y-0 left-1/2 w-px bg-white/[0.06]" aria-hidden />
-
-            {/* Right column — UPCOMING */}
             <DosaOrderSection variant="upcoming" orders={upcoming} />
           </div>
         )}
@@ -88,22 +71,22 @@ export function DosaCounterView() {
   );
 }
 
-// ── Cap progress bar ──────────────────────────────────────────────────────────
-
-function CapBar({
-  orders,
+// Memoized cap bar — only re-renders when current orders change
+const CapBar = memo(function CapBar({
   current,
 }: {
-  orders: ReturnType<typeof useKitchenOrders>["data"];
   current: ReturnType<typeof partitionDosaQueue>["current"];
 }) {
-  const safeOrders = orders ?? [];
   const safeCurrentOrders = current ?? [];
 
-  const currentQty = safeCurrentOrders
-    .flatMap((o) => o.items)
-    .filter((i) => i.name.toLowerCase().includes("dosa") || (i.menuItem as any)?.kitchenType === "TIME_TAKING")
-    .reduce((s, i) => s + i.quantity, 0);
+  const currentQty = useMemo(
+    () =>
+      safeCurrentOrders
+        .flatMap((o) => o.items)
+        .filter((i) => i.name.toLowerCase().includes("dosa") || (i.menuItem as any)?.kitchenType === "TIME_TAKING")
+        .reduce((s, i) => s + i.quantity, 0),
+    [safeCurrentOrders]
+  );
 
   const pct = Math.min(100, (currentQty / CURRENT_DOSA_CAP) * 100);
   const isFull = currentQty >= CURRENT_DOSA_CAP;
@@ -142,9 +125,7 @@ function CapBar({
       )}
     </div>
   );
-}
-
-// ── Loading skeleton ──────────────────────────────────────────────────────────
+});
 
 function LoadingSkeleton() {
   return (
@@ -166,8 +147,6 @@ function LoadingSkeleton() {
     </div>
   );
 }
-
-// ── Error state ───────────────────────────────────────────────────────────────
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (

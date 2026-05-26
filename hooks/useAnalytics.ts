@@ -15,6 +15,11 @@ interface DateParams {
   to: string;
 }
 
+// Shared staleTime: analytics data changes infrequently
+// 5-minute cache prevents redundant re-fetches on tab switch
+const ANALYTICS_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+const ANALYTICS_GC_TIME = 10 * 60 * 1000;   // keep in cache 10 minutes
+
 export function useAnalyticsSummary(params: DateParams) {
   return useQuery({
     queryKey: ["analytics-summary", params],
@@ -25,6 +30,8 @@ export function useAnalyticsSummary(params: DateParams) {
       );
       return data.data;
     },
+    staleTime: ANALYTICS_STALE_TIME,
+    gcTime: ANALYTICS_GC_TIME,
   });
 }
 
@@ -38,6 +45,8 @@ export function useRevenueData(params: DateParams) {
       );
       return data.data;
     },
+    staleTime: ANALYTICS_STALE_TIME,
+    gcTime: ANALYTICS_GC_TIME,
   });
 }
 
@@ -51,6 +60,8 @@ export function useTopItems(params: DateParams) {
       );
       return data.data;
     },
+    staleTime: ANALYTICS_STALE_TIME,
+    gcTime: ANALYTICS_GC_TIME,
   });
 }
 
@@ -64,5 +75,7 @@ export function useHourlyData(params: DateParams) {
       );
       return data.data;
     },
+    staleTime: ANALYTICS_STALE_TIME,
+    gcTime: ANALYTICS_GC_TIME,
   });
 }

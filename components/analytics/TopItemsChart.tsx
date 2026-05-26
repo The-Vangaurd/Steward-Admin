@@ -1,16 +1,25 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, TooltipProps } from "recharts";
+import { memo, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TopItem } from "@/types";
+import type { TooltipProps } from "recharts";
 
-interface TopItemsChartProps { data?: TopItem[]; loading?: boolean; }
+const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import("recharts").then((m) => m.Bar), { ssr: false });
+const Cell = dynamic(() => import("recharts").then((m) => m.Cell), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
+const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer), { ssr: false });
 
 const COLORS = ["#8B5CF6", "#7C3AED", "#A78BFA", "#C4B5FD", "#DDD6FE"];
 const GRID = "#232328";
 const AXIS = "#71717A";
 
-function CustomTooltip({ active, payload }: TooltipProps<number, string>) {
+const CustomTooltip = memo(function CustomTooltip({ active, payload }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 shadow-elevated">
@@ -18,13 +27,19 @@ function CustomTooltip({ active, payload }: TooltipProps<number, string>) {
       <p className="text-sm font-semibold text-fg num">{payload[0].value} sold</p>
     </div>
   );
-}
+});
 
-export function TopItemsChart({ data, loading }: TopItemsChartProps) {
-  const formatted = data?.map((d) => ({
-    name: d.name.length > 18 ? d.name.slice(0, 18) + "…" : d.name,
-    qty: d.totalQuantity,
-  }));
+interface TopItemsChartProps { data?: TopItem[]; loading?: boolean; }
+
+export const TopItemsChart = memo(function TopItemsChart({ data, loading }: TopItemsChartProps) {
+  const formatted = useMemo(
+    () =>
+      data?.map((d) => ({
+        name: d.name.length > 18 ? d.name.slice(0, 18) + "…" : d.name,
+        qty: d.totalQuantity,
+      })),
+    [data]
+  );
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
@@ -49,4 +64,4 @@ export function TopItemsChart({ data, loading }: TopItemsChartProps) {
       )}
     </div>
   );
-}
+});

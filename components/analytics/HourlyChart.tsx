@@ -1,10 +1,19 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, TooltipProps } from "recharts";
+import { memo, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { HourlyDataPoint } from "@/types";
+import type { TooltipProps } from "recharts";
 
-interface HourlyChartProps { data?: HourlyDataPoint[]; loading?: boolean; }
+const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import("recharts").then((m) => m.Bar), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
+const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer), { ssr: false });
+
 const GRID = "#232328";
 const AXIS = "#71717A";
 
@@ -15,7 +24,7 @@ function formatHour(h: number) {
   return `${h - 12}p`;
 }
 
-function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+const CustomTooltip = memo(function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 shadow-elevated">
@@ -23,10 +32,16 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
       <p className="text-sm font-semibold text-fg num">{payload[0].value} orders</p>
     </div>
   );
-}
+});
 
-export function HourlyChart({ data, loading }: HourlyChartProps) {
-  const formatted = data?.map((d) => ({ hour: formatHour(d.hour), count: d.count }));
+interface HourlyChartProps { data?: HourlyDataPoint[]; loading?: boolean; }
+
+export const HourlyChart = memo(function HourlyChart({ data, loading }: HourlyChartProps) {
+  const formatted = useMemo(
+    () => data?.map((d) => ({ hour: formatHour(d.hour), count: d.count })),
+    [data]
+  );
+
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
       <div className="mb-4 flex items-center justify-between">
@@ -54,4 +69,4 @@ export function HourlyChart({ data, loading }: HourlyChartProps) {
       )}
     </div>
   );
-}
+});

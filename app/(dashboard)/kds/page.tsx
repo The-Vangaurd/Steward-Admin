@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { differenceInSeconds } from "date-fns";
-import { Check, X, Flame, Clock3, RefreshCw, Filter } from "lucide-react";
+import { Check, X, Flame, Clock3, RefreshCw } from "lucide-react";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -32,13 +32,128 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   DINE_IN: "Dine-in", TAKEAWAY: "Takeaway", DELIVERY: "Delivery",
 };
 
+/**
+ * Memoized order card — avoids re-rendering all cards when `now` ticks.
+ * Only re-renders when `order`, `now` (which affects elapsed display), or
+ * lane changes. Since `now` updates every 10s (not 1s), renders are 10× fewer.
+ */
+const KdsOrderCard = memo(function KdsOrderCard({
+  order,
+  lane,
+  now,
+  onAdvance,
+  onCancel,
+}: {
+  order: any;
+  lane: LaneKey;
+  now: number;
+  onAdvance: (order: any, to: string, useAdminRoute?: boolean) => void;
+  onCancel: (order: any) => void;
+}) {
+  const elapsed = order.createdAt
+    ? differenceInSeconds(now, new Date(order.createdAt))
+    : 0;
+
+  const handleAdvancePending = useCallback(() => onAdvance(order, "CONFIRMED"), [order, onAdvance]);
+  const handleAdvancePreparing = useCallback(() => onAdvance(order, "READY"), [order, onAdvance]);
+  const handleAdvanceReady = useCallback(() => onAdvance(order, "DELIVERED", true), [order, onAdvance]);
+  const handleCancel = useCallback(() => onCancel(order), [order, onCancel]);
+
+  return (
+    <article className="rounded-lg border border-border bg-surface hover:border-border-strong transition-colors overflow-hidden">
+      <header className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface-2/50">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-semibold font-mono text-fg num">#{order.orderNumber}</span>
+          <span className="text-[10px] uppercase tracking-wider text-fg-subtle font-medium">
+            {ORDER_TYPE_LABELS[order.orderType] ?? order.orderType}
+            {order.tableNumber ? ` · T${order.tableNumber}` : ""}
+          </span>
+        </div>
+        <div className={cn("flex items-center gap-1 text-[11px] font-semibold num", elapsedTone(elapsed))}>
+          <Clock3 className="h-3 w-3" />
+          {fmtElapsed(elapsed)}
+        </div>
+      </header>
+
+      <ul className="divide-y divide-border">
+        {(order.items ?? []).map((it: any, i: number) => (
+          <li key={i} className="flex items-start gap-2 px-3 py-1.5">
+            <span className="mt-0.5 inline-grid h-4 w-4 flex-shrink-0 place-items-center rounded bg-surface-3 border border-border text-[10px] font-semibold text-fg num">
+              {it.quantity ?? 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-medium text-fg leading-tight">
+                {it.menuItem?.name ?? it.name ?? "Item"}
+              </div>
+              {(it.notes || it.specialInstructions) && (
+                <div className="mt-0.5 text-[11px] text-warning italic leading-tight">
+                  {it.notes ?? it.specialInstructions}
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {order.notes && (
+        <div className="px-3 py-1.5 border-t border-border bg-warning/5 text-[11px] text-warning">
+          Note: {order.notes}
+        </div>
+      )}
+
+      <footer className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border bg-surface-2/30">
+        <span className="text-[11px] text-fg-subtle num">
+          {formatCurrency(order.totalAmount ?? 0)}
+        </span>
+        <div className="flex items-center gap-1.5">
+          {lane !== "READY" && (
+            <button
+              onClick={handleCancel}
+              className="h-7 w-7 grid place-items-center rounded-md border border-border text-fg-muted hover:bg-danger/10 hover:text-danger hover:border-danger/30 transition-colors"
+              title="Cancel"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {lane === "PENDING" && (
+            <button
+              onClick={handleAdvancePending}
+              className="h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-info/15 border border-info/30 text-info text-[11px] font-semibold uppercase tracking-wider hover:bg-info/25 transition-colors"
+            >
+              Accept
+            </button>
+          )}
+          {lane === "PREPARING" && (
+            <button
+              onClick={handleAdvancePreparing}
+              className="h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-success/15 border border-success/30 text-success text-[11px] font-semibold uppercase tracking-wider hover:bg-success/25 transition-colors"
+            >
+              Mark Ready
+            </button>
+          )}
+          {lane === "READY" && (
+            <button
+              onClick={handleAdvanceReady}
+              className="h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-white text-black text-[11px] font-semibold uppercase tracking-wider hover:bg-white/90 transition-colors"
+            >
+              <Check className="h-3 w-3" /> Complete
+            </button>
+          )}
+        </div>
+      </footer>
+    </article>
+  );
+});
+
 export default function KdsPage() {
   const qc = useQueryClient();
+  // Tick every 10s instead of 1s — elapsed timers show MM:SS but
+  // kitchen staff only need ~10s resolution. Reduces renders 10×.
   const [now, setNow] = useState(() => Date.now());
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    const id = setInterval(() => setNow(Date.now()), 10_000);
     return () => clearInterval(id);
   }, []);
 
@@ -50,11 +165,15 @@ export default function KdsPage() {
       });
       return data.data;
     },
-    refetchInterval: 5000,
+    refetchInterval: 15_000, // reduced from 5s — sockets handle real-time
+    structuralSharing: true,
   });
 
   const orders = data ?? [];
-  const filtered = typeFilter ? orders.filter((o: any) => o.orderType === typeFilter) : orders;
+  const filtered = useMemo(
+    () => (typeFilter ? orders.filter((o: any) => o.orderType === typeFilter) : orders),
+    [orders, typeFilter]
+  );
 
   const lanes = useMemo(() => {
     const map: Record<LaneKey, any[]> = { PENDING: [], PREPARING: [], READY: [] };
@@ -65,9 +184,8 @@ export default function KdsPage() {
     return map;
   }, [filtered]);
 
-  // Kitchen actions (Accept → CONFIRMED, Start → PREPARING, Mark Ready → READY)
-  // go through the kitchen route. The final Complete → DELIVERED goes through admin.
-  const advance = async (order: any, to: string, useAdminRoute = false) => {
+  // Stable callbacks — don't recreate on every render
+  const advance = useCallback(async (order: any, to: string, useAdminRoute = false) => {
     try {
       const route = useAdminRoute
         ? `/orders/admin/${order.id}/status`
@@ -75,18 +193,22 @@ export default function KdsPage() {
       await api.patch(route, { status: to });
       qc.invalidateQueries({ queryKey: ["kds-orders"] });
     } catch {}
-  };
+  }, [qc]);
 
-  const cancel = async (order: any) => {
+  const cancel = useCallback(async (order: any) => {
     try {
       await api.patch(`/orders/admin/${order.id}/status`, { status: "CANCELLED" });
       qc.invalidateQueries({ queryKey: ["kds-orders"] });
     } catch {}
-  };
+  }, [qc]);
+
+  const handleRefresh = useCallback(
+    () => qc.invalidateQueries({ queryKey: ["kds-orders"] }),
+    [qc]
+  );
 
   return (
     <div className="h-full flex flex-col">
-      {/* Toolbar */}
       <div className="flex items-center justify-between px-5 lg:px-6 h-12 border-b border-border bg-surface/40">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
@@ -117,14 +239,12 @@ export default function KdsPage() {
               </button>
             ))}
           </div>
-          <Button size="sm" variant="secondary" className="gap-1.5"
-            onClick={() => qc.invalidateQueries({ queryKey: ["kds-orders"] })}>
+          <Button size="sm" variant="secondary" className="gap-1.5" onClick={handleRefresh}>
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
-      {/* Lanes */}
       <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-3 gap-px bg-border">
         {LANES.map((lane) => (
           <div key={lane.key} className="bg-bg flex flex-col min-h-0">
@@ -143,99 +263,16 @@ export default function KdsPage() {
                   No orders
                 </div>
               ) : (
-                lanes[lane.key].map((order: any) => {
-                  const elapsed = order.createdAt
-                    ? differenceInSeconds(now, new Date(order.createdAt))
-                    : 0;
-                  return (
-                    <article key={order.id} className="rounded-lg border border-border bg-surface hover:border-border-strong transition-colors overflow-hidden">
-                      {/* Header */}
-                      <header className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface-2/50">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[12px] font-semibold font-mono text-fg num">#{order.orderNumber}</span>
-                          <span className="text-[10px] uppercase tracking-wider text-fg-subtle font-medium">
-                            {ORDER_TYPE_LABELS[order.orderType] ?? order.orderType}
-                            {order.tableNumber ? ` · T${order.tableNumber}` : ""}
-                          </span>
-                        </div>
-                        <div className={cn("flex items-center gap-1 text-[11px] font-semibold num", elapsedTone(elapsed))}>
-                          <Clock3 className="h-3 w-3" />
-                          {fmtElapsed(elapsed)}
-                        </div>
-                      </header>
-
-                      {/* Items */}
-                      <ul className="divide-y divide-border">
-                        {(order.items ?? []).map((it: any, i: number) => (
-                          <li key={i} className="flex items-start gap-2 px-3 py-1.5">
-                            <span className="mt-0.5 inline-grid h-4 w-4 flex-shrink-0 place-items-center rounded bg-surface-3 border border-border text-[10px] font-semibold text-fg num">
-                              {it.quantity ?? 1}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-[12px] font-medium text-fg leading-tight">
-                                {it.menuItem?.name ?? it.name ?? "Item"}
-                              </div>
-                              {(it.notes || it.specialInstructions) && (
-                                <div className="mt-0.5 text-[11px] text-warning italic leading-tight">
-                                  {it.notes ?? it.specialInstructions}
-                                </div>
-                              )}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-
-                      {/* Notes */}
-                      {order.notes && (
-                        <div className="px-3 py-1.5 border-t border-border bg-warning/5 text-[11px] text-warning">
-                          Note: {order.notes}
-                        </div>
-                      )}
-
-                      {/* Footer */}
-                      <footer className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border bg-surface-2/30">
-                        <span className="text-[11px] text-fg-subtle num">
-                          {formatCurrency(order.totalAmount ?? 0)}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          {lane.key !== "READY" && (
-                            <button
-                              onClick={() => cancel(order)}
-                              className="h-7 w-7 grid place-items-center rounded-md border border-border text-fg-muted hover:bg-danger/10 hover:text-danger hover:border-danger/30 transition-colors"
-                              title="Cancel"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                          {lane.key === "PENDING" && (
-                            <button
-                              onClick={() => advance(order, "CONFIRMED")}
-                              className="h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-info/15 border border-info/30 text-info text-[11px] font-semibold uppercase tracking-wider hover:bg-info/25 transition-colors"
-                            >
-                              Accept
-                            </button>
-                          )}
-                          {lane.key === "PREPARING" && (
-                            <button
-                              onClick={() => advance(order, "READY")}
-                              className="h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-success/15 border border-success/30 text-success text-[11px] font-semibold uppercase tracking-wider hover:bg-success/25 transition-colors"
-                            >
-                              Mark Ready
-                            </button>
-                          )}
-                          {lane.key === "READY" && (
-                            <button
-                              onClick={() => advance(order, "DELIVERED", true)}
-                              className="h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-white text-black text-[11px] font-semibold uppercase tracking-wider hover:bg-white/90 transition-colors"
-                            >
-                              <Check className="h-3 w-3" /> Complete
-                            </button>
-                          )}
-                        </div>
-                      </footer>
-                    </article>
-                  );
-                })
+                lanes[lane.key].map((order: any) => (
+                  <KdsOrderCard
+                    key={order.id}
+                    order={order}
+                    lane={lane.key}
+                    now={now}
+                    onAdvance={advance}
+                    onCancel={cancel}
+                  />
+                ))
               )}
             </div>
           </div>

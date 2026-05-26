@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,8 @@ const accentMap = {
   warning: "text-warning",
 };
 
-export function KpiCard({ title, value, icon: Icon, description, loading, accent = "accent", trend }: KpiCardProps) {
+// Memoized — only re-renders when its own props change
+export const KpiCard = memo(function KpiCard({ title, value, icon: Icon, description, loading, accent = "accent", trend }: KpiCardProps) {
   const color = accentMap[accent];
   return (
     <div className="group rounded-xl border border-border bg-surface p-4 transition-colors duration-150 hover:border-border-strong">
@@ -49,4 +51,4 @@ export function KpiCard({ title, value, icon: Icon, description, loading, accent
       </div>
     </div>
   );
-}
+});

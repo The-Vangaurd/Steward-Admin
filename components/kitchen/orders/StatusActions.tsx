@@ -1,16 +1,12 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { useCallback, memo } from "react";
 import { useOrderStatus } from "@/hooks/useOrderStatus";
 import { ORDER_STATUS_FLOW, STATUS_ACTION_LABELS } from "@/types";
 import type { OrderStatus, KitchenOrder } from "@/types";
 import { cn } from "@/lib/utils";
 import { useKitchenUndo } from "@/hooks/useKitchenUndo";
-
-/**
- * Large touch-friendly action buttons — glove-safe, tablet-optimised.
- * Primary action is full-width, cancel is a secondary destructive option.
- */
 
 const ACTION_STYLES: Partial<Record<OrderStatus, string>> = {
   PENDING:   "bg-[#C8B6E2] hover:bg-[#D8CAE9] active:bg-[#B7A1D6] text-[#17141E]",
@@ -23,7 +19,7 @@ interface StatusActionsProps {
   order: KitchenOrder;
 }
 
-export function StatusActions({ order }: StatusActionsProps) {
+export const StatusActions = memo(function StatusActions({ order }: StatusActionsProps) {
   const { mutate, isPending, variables } = useOrderStatus();
   const { captureSnapshot } = useKitchenUndo();
 
@@ -41,18 +37,23 @@ export function StatusActions({ order }: StatusActionsProps) {
     variables?.orderId === order.id &&
     variables?.input?.status === "CANCELLED";
 
-  const handleAction = (status: OrderStatus) => {
-    captureSnapshot(`#${order.orderNumber} → ${status}`);
-    mutate({ orderId: order.id, input: { status } });
-  };
+  // useCallback prevents new function references on every render
+  const handlePrimary = useCallback(() => {
+    captureSnapshot(`#${order.orderNumber} → ${primaryNext}`);
+    mutate({ orderId: order.id, input: { status: primaryNext } });
+  }, [order.id, order.orderNumber, primaryNext, captureSnapshot, mutate]);
+
+  const handleCancel = useCallback(() => {
+    captureSnapshot(`#${order.orderNumber} → CANCELLED`);
+    mutate({ orderId: order.id, input: { status: "CANCELLED" } });
+  }, [order.id, order.orderNumber, captureSnapshot, mutate]);
 
   return (
     <div className="flex gap-2 pt-3 mt-2 border-t border-white/[0.06]">
-      {/* Primary action — full width, large touch target */}
       {primaryLabel && (
         <button
           disabled={isPending}
-          onClick={() => handleAction(primaryNext)}
+          onClick={handlePrimary}
           className={cn(
             "flex-1 touch-target flex items-center justify-center gap-2",
             "rounded-xl text-sm font-bold tracking-wide uppercase",
@@ -70,11 +71,10 @@ export function StatusActions({ order }: StatusActionsProps) {
         </button>
       )}
 
-      {/* Cancel — only for PENDING, smaller destructive button */}
       {order.status === "PENDING" && (
         <button
           disabled={isPending}
-          onClick={() => handleAction("CANCELLED")}
+          onClick={handleCancel}
           className={cn(
             "touch-target flex items-center justify-center px-4",
             "rounded-xl text-sm font-semibold",
@@ -94,4 +94,4 @@ export function StatusActions({ order }: StatusActionsProps) {
       )}
     </div>
   );
-}
+});
