@@ -6,14 +6,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { TopItem } from "@/types";
 import type { TooltipProps } from "recharts";
 
-const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart), { ssr: false });
-const Bar = dynamic(() => import("recharts").then((m) => m.Bar), { ssr: false });
-const Cell = dynamic(() => import("recharts").then((m) => m.Cell), { ssr: false });
-const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
-const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
-const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
-const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
-const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer), { ssr: false });
+const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart as any), { ssr: false });
+const Bar = dynamic(() => import("recharts").then((m) => m.Bar as any), { ssr: false });
+const Cell = dynamic(() => import("recharts").then((m) => m.Cell as any), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis as any), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis as any), { ssr: false });
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid as any), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip as any), { ssr: false });
+const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer as any), { ssr: false });
 
 const COLORS = ["#8B5CF6", "#7C3AED", "#A78BFA", "#C4B5FD", "#DDD6FE"];
 const GRID = "#232328";

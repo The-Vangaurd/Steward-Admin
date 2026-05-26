@@ -6,13 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { HourlyDataPoint } from "@/types";
 import type { TooltipProps } from "recharts";
 
-const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart), { ssr: false });
-const Bar = dynamic(() => import("recharts").then((m) => m.Bar), { ssr: false });
-const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
-const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
-const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
-const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
-const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer), { ssr: false });
+const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart as any), { ssr: false });
+const Bar = dynamic(() => import("recharts").then((m) => m.Bar as any), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis as any), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis as any), { ssr: false });
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid as any), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip as any), { ssr: false });
+const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer as any), { ssr: false });
 
 const GRID = "#232328";
 const AXIS = "#71717A";
