@@ -93,23 +93,32 @@ export interface UseKitchenUndoReturn {
  *
  * Resilience on browser refresh: snapshots live in React state (in-memory).
  * After a refresh the stack is empty and `canUndo` is false. The server state
- * will be fetched fresh. To add persistence, serialize `historyStack` to
- * sessionStorage in captureSnapshot() and rehydrate in useState's initializer.
- *
- * Usage:
- *   const { captureSnapshot, undo, canUndo } = useKitchenUndo();
- *
- *   // Before marking an order ready:
- *   captureSnapshot(`Marked #${order.orderNumber} ready`);
- *   await markReadyMutation.mutateAsync(orderId);
- *
- *   // Undo button (only shown when canUndo is true):
- *   <button onClick={() => undo(apiUndoFn)}>Undo</button>
+ * will be fetched fresh. To add persistence, serialize `historyStack`
  */
+import { useEffect } from "react";
+
+let globalHistoryStack: UndoSnapshot[] = [];
+const subscribers = new Set<(stack: UndoSnapshot[]) => void>();
+
 export function useKitchenUndo(): UseKitchenUndoReturn {
   const queryClient = useQueryClient();
-  const [historyStack, setHistoryStack] = useState<UndoSnapshot[]>([]);
+  const [historyStack, setHistoryStack] = useState<UndoSnapshot[]>(globalHistoryStack);
   const counterRef = useRef(0);
+
+  useEffect(() => {
+    const onChange = (newStack: UndoSnapshot[]) => {
+      setHistoryStack(newStack);
+    };
+    subscribers.add(onChange);
+    return () => {
+      subscribers.delete(onChange);
+    };
+  }, []);
+
+  const updateStack = (newStack: UndoSnapshot[]) => {
+    globalHistoryStack = newStack;
+    subscribers.forEach((sub) => sub(newStack));
+  };
 
   /**
    * Capture current kitchen queue state before a destructive action.
@@ -128,10 +137,7 @@ export function useKitchenUndo(): UseKitchenUndoReturn {
         orders: JSON.parse(JSON.stringify(currentOrders)) as KitchenOrder[],
       };
 
-      setHistoryStack((prev) => {
-        const next = [snapshot, ...prev];
-        return next.slice(0, MAX_UNDO_STATES);
-      });
+      updateStack([snapshot, ...globalHistoryStack].slice(0, MAX_UNDO_STATES));
     },
     [queryClient],
   );
@@ -154,102 +160,100 @@ export function useKitchenUndo(): UseKitchenUndoReturn {
    */
   const undo = useCallback(
     (onApiUndo?: (orderId: string, targetStatus: OrderStatus) => Promise<void>) => {
-      setHistoryStack((prev) => {
-        if (prev.length === 0) return prev;
+      if (globalHistoryStack.length === 0) return;
 
-        const [latest, ...rest] = prev;
+      const [latest, ...rest] = globalHistoryStack;
 
-        // ── Get the current live state from cache ──────────────────────────────
-        const liveOrders =
-          queryClient.getQueryData<KitchenOrder[]>(KITCHEN_ORDERS_QUERY_KEY) ?? [];
-        const liveMap = new Map(liveOrders.map((o) => [o.id, o]));
+      // ── Get the current live state from cache ──────────────────────────────
+      const liveOrders =
+        queryClient.getQueryData<KitchenOrder[]>(KITCHEN_ORDERS_QUERY_KEY) ?? [];
+      const liveMap = new Map(liveOrders.map((o) => [o.id, o]));
 
-        // ── Validate each order in the snapshot ──────────────────────────────
-        // Build a filtered snapshot: only include orders where the status
-        // actually changed AND the reverse transition is valid.
-        const validatedOrders = latest.orders.map((snapshotOrder) => {
-          const liveOrder = liveMap.get(snapshotOrder.id);
-          if (!liveOrder) {
-            // Order no longer in active queue (e.g. delivered and removed) —
-            // skip state restoration for this order to avoid ghost entries.
-            return liveOrder ?? snapshotOrder;
-          }
-
-          const liveStatus = liveOrder.status;
-          const snapshotStatus = snapshotOrder.status;
-
-          if (liveStatus === snapshotStatus) {
-            // No change — nothing to undo for this order
-            return liveOrder;
-          }
-
-          // Guard: can the live status be reversed at all?
-          if (!canReverseStatus(liveStatus)) {
-            // e.g. someone marked DELIVERED between captureSnapshot and undo —
-            // do NOT try to undo this order; log for observability.
-            console.warn(
-              `[useKitchenUndo] Skipping irreversible status for order ${snapshotOrder.id}: ` +
-              `live=${liveStatus}, snapshot=${snapshotStatus}`,
-            );
-            return liveOrder; // keep live state for this order
-          }
-
-          // Guard: the snapshot status must be a valid reverse of the live status
-          const expectedPrevious = getPreviousStatus(liveStatus);
-          if (expectedPrevious !== snapshotStatus) {
-            console.warn(
-              `[useKitchenUndo] Snapshot status mismatch for order ${snapshotOrder.id}: ` +
-              `live=${liveStatus}, snapshot=${snapshotStatus}, expected-reverse=${expectedPrevious}. ` +
-              `Skipping to prevent invalid state.`,
-            );
-            return liveOrder;
-          }
-
-          // Valid reverse — restore snapshot status
-          return { ...liveOrder, status: snapshotStatus };
-        });
-
-        // ── Optimistic cache update ────────────────────────────────────────────
-        queryClient.setQueryData<KitchenOrder[]>(KITCHEN_ORDERS_QUERY_KEY, validatedOrders);
-
-        toast.success(`Undone: ${latest.label}`, {
-          description: "Queue restored to previous state",
-        });
-
-        // ── Optional: persist undo to backend ─────────────────────────────────
-        if (onApiUndo) {
-          const apiCalls = validatedOrders
-            .filter((o) => {
-              const liveOrder = liveMap.get(o.id);
-              return liveOrder && liveOrder.status !== o.status;
-            })
-            .map((o) => onApiUndo(o.id, o.status));
-
-          Promise.all(apiCalls).catch((err) => {
-            console.error('[useKitchenUndo] API undo failed', err);
-            // API failed — re-invalidate so UI syncs with server truth
-            queryClient.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
-            toast.error('Undo could not be saved to server. View refreshed.');
-          });
-        } else {
-          // No API undo: schedule a server re-sync after 5 s so the optimistic
-          // state doesn't linger forever in case the server is authoritative.
-          // NOTE: without onApiUndo the server still has the new (post-action)
-          // status. This is intentional — the optimistic undo is UI-only unless
-          // the caller provides onApiUndo with a "reverse status" API endpoint.
-          setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
-          }, 5_000);
+      // ── Validate each order in the snapshot ──────────────────────────────
+      // Build a filtered snapshot: only include orders where the status
+      // actually changed AND the reverse transition is valid.
+      const validatedOrders = latest.orders.map((snapshotOrder) => {
+        const liveOrder = liveMap.get(snapshotOrder.id);
+        if (!liveOrder) {
+          // Order no longer in active queue (e.g. delivered and removed) —
+          // skip state restoration for this order to avoid ghost entries.
+          return liveOrder ?? snapshotOrder;
         }
 
-        return rest;
+        const liveStatus = liveOrder.status;
+        const snapshotStatus = snapshotOrder.status;
+
+        if (liveStatus === snapshotStatus) {
+          // No change — nothing to undo for this order
+          return liveOrder;
+        }
+
+        // Guard: can the live status be reversed at all?
+        if (!canReverseStatus(liveStatus)) {
+          // e.g. someone marked DELIVERED between captureSnapshot and undo —
+          // do NOT try to undo this order; log for observability.
+          console.warn(
+            `[useKitchenUndo] Skipping irreversible status for order ${snapshotOrder.id}: ` +
+            `live=${liveStatus}, snapshot=${snapshotStatus}`,
+          );
+          return liveOrder; // keep live state for this order
+        }
+
+        // Guard: the snapshot status must be a valid reverse of the live status
+        const expectedPrevious = getPreviousStatus(liveStatus);
+        if (expectedPrevious !== snapshotStatus) {
+          console.warn(
+            `[useKitchenUndo] Snapshot status mismatch for order ${snapshotOrder.id}: ` +
+            `live=${liveStatus}, snapshot=${snapshotStatus}, expected-reverse=${expectedPrevious}. ` +
+            `Skipping to prevent invalid state.`,
+          );
+          return liveOrder;
+        }
+
+        // Valid reverse — restore snapshot status
+        return { ...liveOrder, status: snapshotStatus };
       });
+
+      // ── Optimistic cache update ────────────────────────────────────────────
+      queryClient.setQueryData<KitchenOrder[]>(KITCHEN_ORDERS_QUERY_KEY, validatedOrders);
+
+      toast.success(`Undone: ${latest.label}`, {
+        description: "Queue restored to previous state",
+      });
+
+      // ── Optional: persist undo to backend ─────────────────────────────────
+      if (onApiUndo) {
+        const apiCalls = validatedOrders
+          .filter((o) => {
+            const liveOrder = liveMap.get(o.id);
+            return liveOrder && liveOrder.status !== o.status;
+          })
+          .map((o) => onApiUndo(o.id, o.status));
+
+        Promise.all(apiCalls).catch((err) => {
+          console.error('[useKitchenUndo] API undo failed', err);
+          // API failed — re-invalidate so UI syncs with server truth
+          queryClient.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
+          toast.error('Undo could not be saved to server. View refreshed.');
+        });
+      } else {
+        // No API undo: schedule a server re-sync after 5 s so the optimistic
+        // state doesn't linger forever in case the server is authoritative.
+        // NOTE: without onApiUndo the server still has the new (post-action)
+        // status. This is intentional — the optimistic undo is UI-only unless
+        // the caller provides onApiUndo with a "reverse status" API endpoint.
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
+        }, 5_000);
+      }
+
+      updateStack(rest);
     },
     [queryClient],
   );
 
   const clearHistory = useCallback(() => {
-    setHistoryStack([]);
+    updateStack([]);
   }, []);
 
   return {

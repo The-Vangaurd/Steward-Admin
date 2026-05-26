@@ -8,6 +8,8 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useSocket } from "@/hooks/useSocket";
 import { useKitchenSocket } from "@/hooks/useKitchenSocket";
 
+import { useRequireAuth } from "@/hooks/useAuth";
+
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":            "Overview",
   "/kds":                  "Kitchen Display",
@@ -36,7 +38,8 @@ function resolveTitle(pathname: string): string {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { accessToken, user } = useAuthStore();
+  const { isAuthenticated, isPendingRefresh, user } = useRequireAuth();
+  const { accessToken } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -48,19 +51,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!mounted) return;
-    if (!accessToken || !user) { router.replace("/login"); return; }
-    if (!ALLOWED_ROLES.includes(user.role)) { router.replace("/login"); return; }
+    if (!isAuthenticated && !isPendingRefresh) { router.replace("/login"); return; }
+    if (user && !ALLOWED_ROLES.includes(user.role)) { router.replace("/login"); return; }
 
-    const isKitchenOnly = user.role === "KITCHEN_STAFF" || user.role === "WAITER";
+    const isKitchenOnly = user?.role === "KITCHEN_STAFF" || user?.role === "WAITER";
     const onAdminPage = ADMIN_ONLY_PATHS.some(
       (p) => pathname === p || pathname.startsWith(p + "/")
     );
     if (isKitchenOnly && onAdminPage) {
       router.replace("/kitchen");
     }
-  }, [accessToken, user, router, mounted, pathname]);
+  }, [isAuthenticated, isPendingRefresh, user, router, mounted, pathname]);
 
-  if (!mounted || !accessToken || !user) {
+  if (!mounted || isPendingRefresh || !isAuthenticated || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-2.5">

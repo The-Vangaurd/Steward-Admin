@@ -47,3 +47,12 @@ export function disconnectSocket(): void {
     activeConsumers = 0;
   }
 }
+
+export function updateSocketAuth(token: string): void {
+  if (!socket) return;
+  (socket as any).auth = { token };
+  // Force reconnect so the new token is used in the next handshake
+  if (socket.connected) {
+    socket.disconnect().connect();
+  }
+}

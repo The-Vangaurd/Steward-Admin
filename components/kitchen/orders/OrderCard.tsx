@@ -22,6 +22,7 @@ const STATUS_STRIP: Record<string, string> = {
   CONFIRMED: "border-l-[#9BAED2]",
   PREPARING: "border-l-[#C8B6E2]",
   READY:     "border-l-[#92B9A5]",
+  CANCELLED: "border-l-[#B42318]",
 };
 
 /** Subtle card tint per status for ambient depth */
@@ -30,6 +31,7 @@ const STATUS_TINT: Record<string, string> = {
   CONFIRMED: "shadow-[#9BAED2]/5",
   PREPARING: "shadow-[#C8B6E2]/7",
   READY:     "shadow-[#92B9A5]/7",
+  CANCELLED: "shadow-[#B42318]/5",
 };
 
 interface OrderCardProps {

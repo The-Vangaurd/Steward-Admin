@@ -6,6 +6,10 @@ import { OrderQueue } from "@/components/kitchen/orders/OrderQueue";
 import { cn } from "@/lib/utils";
 import type { KitchenType, OrderStatus } from "@/types";
 
+import { useKitchenUndo } from "@/hooks/useKitchenUndo";
+import { UndoControls } from "@/components/kitchen/UndoControls";
+import api from "@/lib/axios";
+
 type ActiveTab = "all" | OrderStatus | KitchenType;
 
 interface Tab {
@@ -28,6 +32,7 @@ const TABS: Tab[] = [
 export default function KitchenQueuePage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("all");
   const { data: orders } = useKitchenOrders();
+  const { historyStack, canUndo, undo } = useKitchenUndo();
 
   const getCount = (tab: Tab): number | null => {
     if (!orders || !tab.countFilter) return null;
@@ -71,6 +76,16 @@ export default function KitchenQueuePage() {
       <div className="flex-1 overflow-y-auto">
         <OrderQueue filter={activeTab} />
       </div>
+
+      <UndoControls
+        historyStack={historyStack}
+        canUndo={canUndo}
+        onUndo={() => {
+          undo(async (orderId) => {
+            await api.post(`/orders/kitchen/${orderId}/undo`);
+          });
+        }}
+      />
     </div>
   );
 }

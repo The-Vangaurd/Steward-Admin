@@ -7,9 +7,13 @@ interface SettingsState {
   wsConnected: boolean;
 }
 
+const SOUND_KEY = "steward-sound-enabled";
+
 let state: SettingsState = {
-  soundEnabled: true,
-  wsConnected: false, // Starts false; socket sets to true on connect
+  soundEnabled: typeof window !== "undefined"
+    ? localStorage.getItem(SOUND_KEY) !== "false"
+    : true,
+  wsConnected: false,
 };
 
 const listeners = new Set<() => void>();
@@ -28,6 +32,9 @@ export const settingsStore = {
   },
   toggleSound() {
     state = { ...state, soundEnabled: !state.soundEnabled };
+    if (typeof window !== "undefined") {
+      localStorage.setItem(SOUND_KEY, String(state.soundEnabled));
+    }
     emit();
   },
   setWsConnected(wsConnected: boolean) {

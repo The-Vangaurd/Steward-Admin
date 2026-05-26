@@ -5,6 +5,7 @@ import { useOrderStatus } from "@/hooks/useOrderStatus";
 import { ORDER_STATUS_FLOW, STATUS_ACTION_LABELS } from "@/types";
 import type { OrderStatus, KitchenOrder } from "@/types";
 import { cn } from "@/lib/utils";
+import { useKitchenUndo } from "@/hooks/useKitchenUndo";
 
 /**
  * Large touch-friendly action buttons — glove-safe, tablet-optimised.
@@ -24,6 +25,7 @@ interface StatusActionsProps {
 
 export function StatusActions({ order }: StatusActionsProps) {
   const { mutate, isPending, variables } = useOrderStatus();
+  const { captureSnapshot } = useKitchenUndo();
 
   const nextStatuses = ORDER_STATUS_FLOW[order.status];
   if (nextStatuses.length === 0) return null;
@@ -40,6 +42,7 @@ export function StatusActions({ order }: StatusActionsProps) {
     variables?.input?.status === "CANCELLED";
 
   const handleAction = (status: OrderStatus) => {
+    captureSnapshot(`#${order.orderNumber} → ${status}`);
     mutate({ orderId: order.id, input: { status } });
   };
 

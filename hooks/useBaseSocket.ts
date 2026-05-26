@@ -21,7 +21,7 @@
  */
 
 import { useEffect } from "react";
-import { acquireSocket, releaseSocket } from "@/lib/sockets";
+import { acquireSocket, releaseSocket, updateSocketAuth } from "@/lib/sockets";
 import { useAuthStore } from "@/stores/auth.store";
 import { settingsStore } from "@/stores/settings.store";
 
@@ -56,6 +56,7 @@ export function useBaseSocket({
     if (!enabled || !accessToken || !user?.restaurantId) return;
 
     const socket = acquireSocket(accessToken);
+    updateSocketAuth(accessToken);   // ensure auth is current before connect
 
     const handleConnect = () => {
       for (const room of rooms) {
@@ -74,6 +75,11 @@ export function useBaseSocket({
 
     const handleConnectError = (err: Error) => {
       console.error("[socket] connect_error", err.message);
+      if (err.message === 'TOKEN_EXPIRED') {
+        // The axios interceptor will refresh on the next API call.
+        // Reconnect after a short delay to pick up the new token.
+        setTimeout(() => { socket.connect(); }, 2000);
+      }
       settingsStore.setWsConnected(false);
       onConnectError?.(err);
     };
