@@ -53,15 +53,6 @@ export default function SettingsPage() {
     }
   };
 
-  // Loading state
-  if (isLoading || !draft) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-fg-subtle" />
-      </div>
-    );
-  }
-
   // Error state — shown if the API call fails with something other than 404
   if (isError) {
     return (
@@ -70,6 +61,15 @@ export default function SettingsPage() {
         <Button size="sm" variant="secondary" onClick={() => window.location.reload()}>
           Retry
         </Button>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isLoading || !draft) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-fg-subtle" />
       </div>
     );
   }
