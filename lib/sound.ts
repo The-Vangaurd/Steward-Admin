@@ -2,18 +2,19 @@
 
 import { Howl } from "howler";
 
+// SOUND_KEY must match the key used in stores/settings.store.ts
+const SOUND_KEY = "steward-sound-enabled";
+
 let newOrderSound: Howl | null = null;
-let orderReadySound: Howl | null = null;
 
 /**
- * Lazily initialise sounds on first use.
- * Howler is browser-only so we guard against SSR.
+ * Lazily initialise the new-order sound on first use.
+ * Howler is browser-only — this function must never be called on the server.
  */
 function getNewOrderSound(): Howl {
   if (!newOrderSound) {
     newOrderSound = new Howl({
       // A simple beep encoded as base64 WAV — no external asset needed.
-      // This is a 440Hz tone, 0.5s duration, generated inline.
       src: [
         "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA" +
           "EAAQARmQAAESsAAAIAIAABAAAAACAAAA" +
@@ -28,43 +29,18 @@ function getNewOrderSound(): Howl {
   return newOrderSound;
 }
 
-function getOrderReadySound(): Howl {
-  if (!orderReadySound) {
-    orderReadySound = new Howl({
-      src: [
-        "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA" +
-          "EAAQARmQAAESsAAAIAIAABAAAAACAAAA" +
-          "BAAEAAQAAwADAAIAAgABAAEAAAAAAAAA",
-      ],
-      volume: 0.6,
-      html5: true,
-    });
-  }
-  return orderReadySound;
-}
-
 /**
  * Play the new order notification sound.
- * Checks the global sound-enabled flag from localStorage.
+ * Reads the sound-enabled flag from localStorage using the same key as
+ * settings.store.ts — toggling sound in the UI will correctly silence this.
  */
 export function playNewOrderSound(): void {
   if (typeof window === "undefined") return;
   try {
-    const enabled = localStorage.getItem("kitchen:sound") !== "false";
+    const enabled = localStorage.getItem(SOUND_KEY) !== "false";
     if (!enabled) return;
     getNewOrderSound().play();
   } catch {
-    // Audio blocked by browser policy — ignore
-  }
-}
-
-export function playOrderReadySound(): void {
-  if (typeof window === "undefined") return;
-  try {
-    const enabled = localStorage.getItem("kitchen:sound") !== "false";
-    if (!enabled) return;
-    getOrderReadySound().play();
-  } catch {
-    // ignore
+    // Audio blocked by browser autoplay policy — ignore silently
   }
 }

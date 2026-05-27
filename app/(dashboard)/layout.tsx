@@ -7,28 +7,29 @@ import { Header } from "@/components/layout/Header";
 import { useAuthStore } from "@/stores/auth.store";
 import { useSocket } from "@/hooks/useSocket";
 import { useKitchenSocket } from "@/hooks/useKitchenSocket";
-
 import { useRequireAuth } from "@/hooks/useAuth";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/dashboard": "Overview",
-  "/kds": "Kitchen Display",
-  "/orders": "Orders",
-  "/menu": "Menu",
-  "/staff": "Staff",
-  "/settings": "Settings",
-  "/kitchen": "Order Queue",
+  "/dashboard":            "Overview",
+  "/kds":                  "Kitchen Display",
+  "/orders":               "Orders",
+  "/menu":                 "Menu",
+  "/staff":                "Staff",
+  "/settings":             "Settings",
+  "/kitchen":              "Order Queue",
   "/kitchen/availability": "Item Availability",
-  "/dosa-counter": "Dosa Counter",
+  "/dosa-counter":         "Dosa Counter",
 };
 
-// Admin-only routes — KITCHEN_STAFF / WAITER gets redirected away from these
 const ADMIN_ONLY_PATHS = ["/dashboard", "/kds", "/orders", "/menu", "/staff", "/settings"];
-const ALLOWED_ROLES = ["ADMIN", "SUPER_ADMIN", "KITCHEN_STAFF", "WAITER"];
+const ALLOWED_ROLES    = ["ADMIN", "SUPER_ADMIN", "KITCHEN_STAFF", "WAITER"];
+
+// Kitchen socket is only needed on kitchen-related pages — avoid subscribing on
+// every dashboard page (staff, menu, settings, etc.)
+const KITCHEN_PATHS = ["/kitchen", "/dosa-counter", "/kds"];
 
 function resolveTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
-  // Check prefix matches for nested routes
   for (const [path, title] of Object.entries(PAGE_TITLES)) {
     if (pathname.startsWith(path + "/")) return title;
   }
@@ -36,38 +37,30 @@ function resolveTitle(pathname: string): string {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, isPendingRefresh, user } = useRequireAuth();
-  const { accessToken } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted]         = useState(false);
 
-  // Both hooks now delegate to useBaseSocket — safe to call together; they join different rooms
+  const isKitchenPath = KITCHEN_PATHS.some((p) => pathname.startsWith(p));
+
+  // Admin socket always active; kitchen socket only on kitchen-related pages
   useSocket();
-  useKitchenSocket();
+  useKitchenSocket({ enabled: isKitchenPath });
 
   useEffect(() => { setMounted(true); }, []);
 
-  // ── Silent refresh on hard reload ──────────────────────────────────────────
-  // After the security refactor, accessToken is in-memory only (never in
-  // localStorage). On a hard refresh it starts as null even for a logged-in
-  // user. isPendingRefresh catches this state (user known, token missing).
-  //
-  // Previously the app relied on the axios 401 interceptor to trigger a
-  // refresh, but that only fires when an actual API call returns 401. Here,
-  // nothing makes an API call while the loading spinner is showing, so the
-  // refresh never happened → infinite spinner.
-  //
-  // Fix: explicitly call /auth/refresh as soon as we detect isPendingRefresh.
-  // Raw axios (not the `api` instance) is used to avoid triggering the
-  // response interceptor recursively, matching the same pattern used inside
-  // lib/axios.ts for the 401 retry path.
+  // ── Silent refresh on hard reload ─────────────────────────────────────────
+  // accessToken is in-memory only (never localStorage). On hard refresh it
+  // starts null even for logged-in users. isPendingRefresh catches this state
+  // (user in localStorage, token missing). We must actively call /auth/refresh
+  // here — the axios 401 interceptor only fires when an API call returns 401,
+  // which never happens while the loading spinner blocks all requests.
   useEffect(() => {
     if (!mounted || !isPendingRefresh) return;
 
     const baseURL = process.env.NEXT_PUBLIC_API_URL!;
-
     import("axios").then(({ default: axios }) => {
       axios
         .post(`${baseURL}/auth/refresh`, {}, { withCredentials: true })
@@ -75,7 +68,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           useAuthStore.getState().setAccessToken(data.data.accessToken);
         })
         .catch(() => {
-          // Refresh cookie is gone — treat as logged out
           useAuthStore.getState().clearAuth();
           router.replace("/login");
         });
@@ -88,12 +80,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (user && !ALLOWED_ROLES.includes(user.role)) { router.replace("/login"); return; }
 
     const isKitchenOnly = user?.role === "KITCHEN_STAFF" || user?.role === "WAITER";
-    const onAdminPage = ADMIN_ONLY_PATHS.some(
+    const onAdminPage   = ADMIN_ONLY_PATHS.some(
       (p) => pathname === p || pathname.startsWith(p + "/")
     );
-    if (isKitchenOnly && onAdminPage) {
-      router.replace("/kitchen");
-    }
+    if (isKitchenOnly && onAdminPage) router.replace("/kitchen");
   }, [isAuthenticated, isPendingRefresh, user, router, mounted, pathname]);
 
   if (!mounted || isPendingRefresh || !isAuthenticated || !user) {

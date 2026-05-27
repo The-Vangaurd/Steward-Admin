@@ -14,6 +14,18 @@ export interface DosaGrillAggregatedItem {
   isPriority: boolean;
 }
 
+// ── Shared status resolver ────────────────────────────────────────────────────
+// Previously duplicated identically in mutationFn and onMutate.
+function resolveOrderStatus(
+  kitchenStatus?: string,
+  input?: { status: OrderStatus }
+): OrderStatus {
+  if (input?.status) return input.status;
+  if (kitchenStatus === "READY_TO_SERVE") return "READY";
+  if (kitchenStatus === "SERVED") return "DELIVERED";
+  return kitchenStatus as OrderStatus;
+}
+
 export function useKitchenOrders() {
   return useQuery({
     queryKey: KITCHEN_ORDERS_QUERY_KEY,
@@ -25,8 +37,6 @@ export function useKitchenOrders() {
     },
     // Socket events invalidate in real-time; 30s poll as fallback
     refetchInterval: 30_000,
-    // Structural sharing: React Query will reuse object references for
-    // unchanged orders, preventing OrderCard from re-rendering
     structuralSharing: true,
   });
 }
@@ -34,8 +44,6 @@ export function useKitchenOrders() {
 export function useKitchenQueuePartitions() {
   const { data: orders = [], isLoading, isError } = useKitchenOrders();
 
-  // Each partition is memoized independently — a status change to one order
-  // won't recalculate unrelated partitions
   const takeawayOrders = useMemo(
     () => orders.filter((o) => o.orderType === "TAKEAWAY"),
     [orders]
@@ -68,11 +76,11 @@ export function useKitchenQueuePartitions() {
 
   const dosaGrillAggregation = useMemo(() => {
     const priorityItems = new Map<string, DosaGrillAggregatedItem>();
-    const nextItems = new Map<string, DosaGrillAggregatedItem>();
+    const nextItems     = new Map<string, DosaGrillAggregatedItem>();
 
     activeOrders.forEach((order, index) => {
       const isPriority = index < 3;
-      const targetMap = isPriority ? priorityItems : nextItems;
+      const targetMap  = isPriority ? priorityItems : nextItems;
 
       order.items.forEach((item) => {
         if (item.menuItem?.kitchenType === "TIME_TAKING") {
@@ -119,17 +127,7 @@ export function useKitchenStatusMutation() {
       kitchenStatus?: string;
       input?: { status: OrderStatus };
     }) => {
-      let status: OrderStatus = "PENDING";
-      if (input?.status) {
-        status = input.status;
-      } else if (kitchenStatus === "READY_TO_SERVE") {
-        status = "READY";
-      } else if (kitchenStatus === "SERVED") {
-        status = "DELIVERED";
-      } else {
-        status = kitchenStatus as OrderStatus;
-      }
-
+      const status = resolveOrderStatus(kitchenStatus, input);
       const { data } = await api.patch<ApiSuccess<KitchenOrder>>(
         `/orders/kitchen/${orderId}/status`,
         { status }
@@ -137,25 +135,14 @@ export function useKitchenStatusMutation() {
       return data.data;
     },
 
-    // Optimistic update — patch single order in cache, not full array replace
     async onMutate({ orderId, kitchenStatus, input }) {
       await queryClient.cancelQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
       const previousOrders = queryClient.getQueryData<KitchenOrder[]>(
         KITCHEN_ORDERS_QUERY_KEY
       );
 
-      let optimisticStatus: OrderStatus = "PENDING";
-      if (input?.status) {
-        optimisticStatus = input.status;
-      } else if (kitchenStatus === "READY_TO_SERVE") {
-        optimisticStatus = "READY";
-      } else if (kitchenStatus === "SERVED") {
-        optimisticStatus = "DELIVERED";
-      } else {
-        optimisticStatus = kitchenStatus as OrderStatus;
-      }
+      const optimisticStatus = resolveOrderStatus(kitchenStatus, input);
 
-      // Patch only the changed order — stable references for all others
       queryClient.setQueryData<KitchenOrder[]>(KITCHEN_ORDERS_QUERY_KEY, (orders) =>
         orders?.map((order) =>
           order.id === orderId ? { ...order, status: optimisticStatus } : order
@@ -166,7 +153,6 @@ export function useKitchenStatusMutation() {
     },
 
     onSuccess(updatedOrder) {
-      // Patch single order on success — no full array invalidation
       queryClient.setQueryData<KitchenOrder[]>(KITCHEN_ORDERS_QUERY_KEY, (orders) =>
         orders?.map((current) =>
           current.id === updatedOrder.id ? updatedOrder : current
@@ -179,10 +165,7 @@ export function useKitchenStatusMutation() {
 
     onError(error: unknown, _variables, context) {
       if (context?.previousOrders) {
-        queryClient.setQueryData(
-          KITCHEN_ORDERS_QUERY_KEY,
-          context.previousOrders
-        );
+        queryClient.setQueryData(KITCHEN_ORDERS_QUERY_KEY, context.previousOrders);
       }
       const err = error as { response?: { data?: { message?: string } } };
       toast.error(
@@ -193,4 +176,5 @@ export function useKitchenStatusMutation() {
   });
 }
 
+// Single canonical alias — import useKitchenStatusMutation directly instead
 export const useOrderStatus = useKitchenStatusMutation;

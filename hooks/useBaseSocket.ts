@@ -4,20 +4,18 @@
  * useBaseSocket — Reusable socket connection primitive.
  *
  * Both `useSocket` (admin) and `useKitchenSocket` (kitchen) are built on top
- * of this hook.  It handles:
+ * of this hook. It handles:
  *   • acquireSocket / releaseSocket reference counting
  *   • connect / disconnect lifecycle
  *   • room join on connect (or immediately if already connected)
  *   • settingsStore.setWsConnected tracking
  *   • arbitrary event-handler registration / cleanup
  *
- * Usage:
- *   useBaseSocket({
- *     rooms: ["admin:abc", "restaurant:abc"],
- *     events: {
- *       "order:created": () => queryClient.invalidateQueries(…),
- *     },
- *   });
+ * IMPORTANT FOR CALLERS: `rooms`, `events`, `onConnected`, `onDisconnected`,
+ * and `onConnectError` are intentionally excluded from the useEffect deps array
+ * (suppressed with eslint-disable) to avoid reconnect loops on every render.
+ * You MUST memoize any of these values with useMemo / useCallback at the
+ * call site — otherwise stale closures will be used for event handlers.
  */
 
 import { useEffect } from "react";
@@ -28,17 +26,12 @@ import { settingsStore } from "@/stores/settings.store";
 export type SocketEventMap = Record<string, (...args: unknown[]) => void>;
 
 interface UseBaseSocketOptions {
-  /** Rooms to join on connect (emits `join_room` for each). */
   rooms: string[];
-  /** Event → handler mapping. Handlers are bound and cleaned up automatically. */
   events?: SocketEventMap;
-  /** Called when connection is established (after rooms joined). */
   onConnected?: () => void;
-  /** Called on disconnect. */
   onDisconnected?: () => void;
-  /** Called on connect_error. */
   onConnectError?: (err: Error) => void;
-  /** Set to false to skip connecting (e.g. waiting on auth). Default: true */
+  /** Set to false to skip connecting (e.g. waiting on auth or on non-kitchen pages). Default: true */
   enabled?: boolean;
 }
 
@@ -56,7 +49,7 @@ export function useBaseSocket({
     if (!enabled || !accessToken || !user?.restaurantId) return;
 
     const socket = acquireSocket(accessToken);
-    updateSocketAuth(accessToken);   // ensure auth is current before connect
+    updateSocketAuth(accessToken);
 
     const handleConnect = () => {
       for (const room of rooms) {
@@ -75,13 +68,18 @@ export function useBaseSocket({
 
     const handleConnectError = (err: Error) => {
       console.error("[socket] connect_error", err.message);
-      if (err.message === 'TOKEN_EXPIRED') {
-        // The axios interceptor will refresh on the next API call.
-        // Reconnect after a short delay to pick up the new token.
-        setTimeout(() => { socket.connect(); }, 2000);
-      }
       settingsStore.setWsConnected(false);
       onConnectError?.(err);
+
+      if (err.message === "TOKEN_EXPIRED") {
+        // Pull the latest in-memory token (may have been refreshed by the
+        // axios interceptor since the last socket handshake) and reconnect.
+        setTimeout(() => {
+          const freshToken = useAuthStore.getState().accessToken;
+          if (freshToken) updateSocketAuth(freshToken);
+          socket.connect();
+        }, 2000);
+      }
     };
 
     socket.on("connect", handleConnect);

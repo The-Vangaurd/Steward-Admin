@@ -10,77 +10,95 @@ import { DEFAULT_SETTINGS } from "@/types/settings";
 
 export const SETTINGS_QUERY_KEY = ["restaurant-settings"] as const;
 
+/**
+ * Merge server data with DEFAULT_SETTINGS so any field the backend hasn't
+ * persisted yet (e.g. openingHours on a fresh account) is filled with a safe
+ * default instead of undefined — which would crash tab components that
+ * destructure fields unconditionally.
+ */
+function normaliseSettings(raw: Partial<RestaurantSettings>): RestaurantSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...raw,
+    // openingHours must always be a complete schedule — guard against null/partial
+    openingHours: {
+      ...DEFAULT_SETTINGS.openingHours,
+      ...(raw.openingHours ?? {}),
+    },
+  };
+}
+
 export function useRestaurantSettings() {
   return useQuery({
     queryKey: SETTINGS_QUERY_KEY,
     queryFn: async () => {
       try {
-        const { data } = await api.get<ApiSuccess<RestaurantSettings>>("/settings");
-        return data.data;
+        const { data } = await api.get<ApiSuccess<Partial<RestaurantSettings>>>("/settings");
+        return normaliseSettings(data.data);
       } catch (err: any) {
-        if (err?.response?.status === 404) {
-          return DEFAULT_SETTINGS;
-        }
+        // First-time setup: no settings exist yet — use safe defaults
+        if (err?.response?.status === 404) return normaliseSettings({});
         throw err;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 min
+    staleTime: 1000 * 60 * 5, // 5 min — settings rarely change mid-session
   });
 }
 
 export function useUpdateRestaurantSettings() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (settings: Partial<RestaurantSettings>) => {
+      // Split fields between /settings/profile (name, contact, locale) and
+      // /settings (everything else) because the backend exposes two endpoints.
       const profileKeys = ["name", "tagline", "email", "phone", "address", "currency", "timezone"] as const;
-      
-      const profileFields: Record<string, any> = {};
-      const settingsFields: Record<string, any> = {};
-      let hasProfile = false;
+
+      const profileFields: Record<string, unknown> = {};
+      const settingsFields: Record<string, unknown> = {};
+      let hasProfile  = false;
       let hasSettings = false;
 
       for (const [key, value] of Object.entries(settings)) {
-        if (profileKeys.includes(key as any)) {
+        if (profileKeys.includes(key as typeof profileKeys[number])) {
           hasProfile = true;
-          if (key === "tagline") {
-            profileFields["description"] = value;
-          } else {
-            profileFields[key] = value;
-          }
+          // Backend stores tagline as "description" in the profile table
+          profileFields[key === "tagline" ? "description" : key] = value;
         } else {
           hasSettings = true;
           settingsFields[key] = value;
         }
       }
 
-      const promises: Promise<any>[] = [];
-      if (hasProfile) {
-        promises.push(api.patch<ApiSuccess<any>>("/settings/profile", profileFields));
-      }
-      if (hasSettings) {
-        promises.push(api.patch<ApiSuccess<any>>("/settings", settingsFields));
-      }
+      const promises: Promise<unknown>[] = [];
+      if (hasProfile)  promises.push(api.patch<ApiSuccess<unknown>>("/settings/profile", profileFields));
+      if (hasSettings) promises.push(api.patch<ApiSuccess<unknown>>("/settings", settingsFields));
 
+      // Fire both patches in parallel — no dependency between them
       const results = await Promise.all(promises);
-      
-      // Merge results of both API patches
-      let responseData = {};
+
+      // Merge both responses into one object
+      let merged: Record<string, unknown> = {};
       for (const res of results) {
-        if (res.data?.data) {
-          responseData = { ...responseData, ...res.data.data };
-        }
+        const r = res as { data?: { data?: Record<string, unknown> } };
+        if (r.data?.data) merged = { ...merged, ...r.data.data };
       }
 
-      if ("description" in responseData) {
-        (responseData as any)["tagline"] = (responseData as any)["description"];
+      // Remap description → tagline to keep the frontend type consistent
+      if ("description" in merged) {
+        merged["tagline"] = merged["description"];
+        delete merged["description"];
       }
 
-      return responseData as RestaurantSettings;
+      return normaliseSettings(merged as Partial<RestaurantSettings>);
     },
+
     onSuccess: (data) => {
+      // Update the query cache so useRestaurantSettings reflects the new data
       queryClient.setQueryData(SETTINGS_QUERY_KEY, data);
       toast.success("Settings saved");
     },
+
     onError: (err) => {
       toast.error(extractApiError(err, "Failed to save settings"));
     },
