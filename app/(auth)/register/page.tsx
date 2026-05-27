@@ -1,38 +1,34 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Loader2, Eye, EyeOff, ArrowRight, Store, ChevronLeft } from "lucide-react";
-import { toast } from "sonner";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAuthStore } from "@/stores/auth.store";
-import api from "@/lib/axios";
-import type { ApiSuccess } from "@/types";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Loader2, Eye, EyeOff, ArrowRight, Store, ChevronLeft } from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuthStore } from '@/stores/auth.store';
+import api from '@/lib/axios';
+import type { ApiSuccess } from '@/types';
 
-// ─── Validation (mirrors backend ownerRegisterSchema) ─────────────────────────
+// ─── Validation ───────────────────────────────────────────────────────────────
+// Reduced friction: phone removed (can be added later in Settings > General).
+// Backend ownerRegisterSchema still requires phone — we send an empty optional
+// value so the schema stays backward-compatible.
 
 const registerSchema = z.object({
-  restaurantName: z
-    .string()
-    .min(2, "Restaurant name must be at least 2 characters")
-    .max(255),
-  ownerName: z
-    .string()
-    .min(2, "Your name must be at least 2 characters")
-    .max(100),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(7, "Phone number is required").max(20),
+  restaurantName: z.string().min(2, 'Restaurant name must be at least 2 characters').max(255),
+  ownerName: z.string().min(2, 'Your name must be at least 2 characters').max(100),
+  email: z.string().email('Invalid email address'),
   password: z
     .string()
-    .min(8, "Must be at least 8 characters")
-    .regex(/[A-Z]/, "Must contain an uppercase letter")
-    .regex(/[0-9]/, "Must contain a number"),
+    .min(8, 'Must be at least 8 characters')
+    .regex(/[A-Z]/, 'Must contain an uppercase letter')
+    .regex(/[0-9]/, 'Must contain a number'),
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -51,6 +47,7 @@ interface OwnerRegisterResponse {
     id: string;
     name: string;
     slug: string;
+    restaurantCode: string;
   };
 }
 
@@ -71,31 +68,32 @@ export default function RegisterPage() {
   const onSubmit = async (values: RegisterForm) => {
     setServerError(null);
     try {
-      const { data } = await api.post<ApiSuccess<OwnerRegisterResponse>>(
-        "/auth/owner-register",
-        values,
+      const { data } = await api.post<ApiSuccess<OwnerRegisterResponse>>('/auth/owner-register', {
+        ...values,
+        // phone is optional on backend — can be set later in Settings
+        phone: '',
+      });
+
+      setAuth(
+        data.data.accessToken,
+        { ...data.data.user, restaurantId: data.data.user.restaurantId } as any,
+        data.data.restaurant,
       );
 
-      // Store auth just like login does — JWT already contains restaurantId
-      setAuth(data.data.accessToken, {
-        ...data.data.user,
-        restaurantId: data.data.user.restaurantId,
-      } as any);
-
       toast.success(`Welcome! "${data.data.restaurant.name}" is ready.`);
-      router.push("/dashboard");
+      router.push('/dashboard');
     } catch (err: any) {
-      const message =
+      setServerError(
         err?.response?.data?.error?.message ??
-        err?.response?.data?.message ??
-        "Registration failed. Please try again.";
-      setServerError(message);
+          err?.response?.data?.message ??
+          'Registration failed. Please try again.',
+      );
     }
   };
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2 bg-bg text-fg">
-      {/* ── Left: form ─────────────────────────────────────────────────────── */}
+      {/* ── Left: form ── */}
       <div className="flex flex-col px-6 py-8 lg:px-16 lg:py-12">
         {/* Brand */}
         <div className="flex items-center justify-between">
@@ -114,9 +112,8 @@ export default function RegisterPage() {
           </Link>
         </div>
 
-        {/* Form container */}
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-full max-w-[420px]">
+          <div className="w-full max-w-[400px]">
             <div className="mb-7">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 mb-3">
                 <Store className="h-3 w-3 text-accent" />
@@ -128,7 +125,7 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               {/* Restaurant name */}
               <div className="space-y-1.5">
                 <Label htmlFor="restaurantName" className="text-[12px] font-medium text-fg-muted">
@@ -138,7 +135,7 @@ export default function RegisterPage() {
                   id="restaurantName"
                   placeholder="The Spice Garden"
                   autoComplete="organization"
-                  {...register("restaurantName")}
+                  {...register('restaurantName')}
                 />
                 {errors.restaurantName && (
                   <p className="text-[11px] text-danger mt-1">{errors.restaurantName.message}</p>
@@ -154,65 +151,48 @@ export default function RegisterPage() {
                   id="ownerName"
                   placeholder="Priya Sharma"
                   autoComplete="name"
-                  {...register("ownerName")}
+                  {...register('ownerName')}
                 />
                 {errors.ownerName && (
                   <p className="text-[11px] text-danger mt-1">{errors.ownerName.message}</p>
                 )}
               </div>
 
-              {/* Email + Phone side by side */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-[12px] font-medium text-fg-muted">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@restaurant.com"
-                    autoComplete="email"
-                    {...register("email")}
-                  />
-                  {errors.email && (
-                    <p className="text-[11px] text-danger mt-1">{errors.email.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="phone" className="text-[12px] font-medium text-fg-muted">
-                    Phone
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+91 98765 43210"
-                    autoComplete="tel"
-                    {...register("phone")}
-                  />
-                  {errors.phone && (
-                    <p className="text-[11px] text-danger mt-1">{errors.phone.message}</p>
-                  )}
-                </div>
+              {/* Email */}
+              <div className="space-y-1.5">
+                <Label htmlFor="reg-email" className="text-[12px] font-medium text-fg-muted">
+                  Email
+                </Label>
+                <Input
+                  id="reg-email"
+                  type="email"
+                  placeholder="you@restaurant.com"
+                  autoComplete="email"
+                  {...register('email')}
+                />
+                {errors.email && (
+                  <p className="text-[11px] text-danger mt-1">{errors.email.message}</p>
+                )}
               </div>
 
               {/* Password */}
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-[12px] font-medium text-fg-muted">
+                <Label htmlFor="reg-password" className="text-[12px] font-medium text-fg-muted">
                   Password
                 </Label>
                 <div className="relative">
                   <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
+                    id="reg-password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="Min 8 chars, 1 uppercase, 1 number"
                     autoComplete="new-password"
                     className="pr-10"
-                    {...register("password")}
+                    {...register('password')}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md text-fg-subtle hover:bg-surface-3 hover:text-fg-muted"
                   >
                     {showPassword ? (
@@ -246,11 +226,11 @@ export default function RegisterPage() {
             </form>
 
             <p className="mt-4 text-[11px] text-fg-subtle text-center">
-              By registering you agree to our{" "}
+              By registering you agree to our{' '}
               <a className="hover:text-fg-muted cursor-pointer underline underline-offset-2">
                 Terms of Service
-              </a>{" "}
-              and{" "}
+              </a>{' '}
+              and{' '}
               <a className="hover:text-fg-muted cursor-pointer underline underline-offset-2">
                 Privacy Policy
               </a>
@@ -269,14 +249,14 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* ── Right: visual panel (mirrors login page aesthetics) ────────────── */}
+      {/* ── Right: visual panel ── */}
       <div className="hidden lg:flex relative overflow-hidden border-l border-border bg-surface">
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage:
-              "linear-gradient(hsl(var(--fg)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--fg)) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
+              'linear-gradient(hsl(var(--fg)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--fg)) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
           }}
         />
         <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
@@ -302,13 +282,12 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {/* Feature list */}
             <div className="space-y-2 max-w-sm">
               {[
-                { icon: "✦", label: "Kitchen Display System — real-time order routing" },
-                { icon: "✦", label: "Menu & availability management" },
-                { icon: "✦", label: "Staff onboarding with role-based access" },
-                { icon: "✦", label: "Live analytics and revenue tracking" },
+                { icon: '✦', label: 'Kitchen Display System — real-time order routing' },
+                { icon: '✦', label: 'Menu & availability management' },
+                { icon: '✦', label: 'Staff onboarding with role-based access' },
+                { icon: '✦', label: 'Live analytics and revenue tracking' },
               ].map((f, i) => (
                 <div key={i} className="flex items-start gap-2.5">
                   <span className="text-[10px] text-accent mt-0.5 shrink-0">{f.icon}</span>

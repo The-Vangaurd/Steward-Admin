@@ -1,72 +1,119 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Loader2, Eye, EyeOff, ArrowRight, Store } from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAuthStore } from "@/stores/auth.store";
-import api from "@/lib/axios";
-import type { ApiSuccess, LoginResponse } from "@/types";
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Store } from 'lucide-react';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import { useAuthStore } from '@/stores/auth.store';
+import { AdminLoginForm, type AdminLoginValues } from '@/components/auth/AdminLoginForm';
+import { StaffLoginForm, type StaffLoginValues } from '@/components/auth/StaffLoginForm';
+import { AUTH_TABS, getRedirectPath, type AuthTab } from '@/constants/auth';
+import api from '@/lib/axios';
+import type { ApiSuccess, LoginResponse } from '@/types';
 
-const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
-});
-type LoginForm = z.infer<typeof loginSchema>;
+// ─── Staff login response shape ───────────────────────────────────────────────
 
-function getRedirectPath(role: string): string {
-  if (role === "ADMIN" || role === "SUPER_ADMIN") return "/dashboard";
-  if (role === "KITCHEN_STAFF") return "/kitchen";
-  if (role === "WAITER") return "/kitchen";   // WAITERs use kitchen view for now
-  return "/dashboard";
+interface StaffLoginResponse extends LoginResponse {
+  restaurant: {
+    id: string;
+    name: string;
+    slug: string;
+    restaurantCode: string;
+  };
 }
+
+// ─── Tab button ───────────────────────────────────────────────────────────────
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-1 py-2 text-[13px] font-medium rounded-lg transition-all ${
+        active
+          ? 'bg-bg shadow-sm text-fg border border-border'
+          : 'text-fg-muted hover:text-fg'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { accessToken, user, setAuth } = useAuthStore();
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<AuthTab>(AUTH_TABS.ADMIN);
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [staffError, setStaffError] = useState<string | null>(null);
+
+  // Auto-redirect if already authenticated
   useEffect(() => {
     if (accessToken && user) {
-      router.replace(getRedirectPath(user.role));
+      const next = searchParams.get('next');
+      router.replace(next ? decodeURIComponent(next) : getRedirectPath(user.role));
     }
-  }, [accessToken, user, router]);
+  }, [accessToken, user, router, searchParams]);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } =
-    useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
-
-  const onSubmit = async (values: LoginForm) => {
-    setServerError(null);
-
+  // ── Admin login ────────────────────────────────────────────────────────────
+  const handleAdminSubmit = async (values: AdminLoginValues) => {
+    setAdminError(null);
     try {
-      const { data } = await api.post<ApiSuccess<LoginResponse>>(
-        "/auth/login",
-        { email: values.email, password: values.password }
-      );
+      const { data } = await api.post<ApiSuccess<LoginResponse>>('/auth/login', {
+        email: values.email,
+        password: values.password,
+      });
       setAuth(data.data.accessToken, data.data.user);
-      toast.success("Signed in successfully");
+      toast.success('Signed in successfully');
+      const next = searchParams.get('next');
+      router.push(next ? decodeURIComponent(next) : getRedirectPath(data.data.user.role));
+    } catch (err: any) {
+      setAdminError(
+        err?.response?.data?.message ??
+          err?.response?.data?.error?.message ??
+          'Invalid email or password',
+      );
+    }
+  };
+
+  // ── Staff login ────────────────────────────────────────────────────────────
+  const handleStaffSubmit = async (values: StaffLoginValues) => {
+    setStaffError(null);
+    try {
+      const { data } = await api.post<ApiSuccess<StaffLoginResponse>>('/auth/staff-login', {
+        restaurantCode: values.restaurantCode,
+        pin: values.pin,
+      });
+      setAuth(data.data.accessToken, data.data.user, data.data.restaurant);
+      toast.success(`Welcome, ${data.data.user.firstName}!`);
       router.push(getRedirectPath(data.data.user.role));
     } catch (err: any) {
-      const message =
+      setStaffError(
         err?.response?.data?.message ??
-        err?.response?.data?.error?.message ??
-        "Invalid email or password";
-      setServerError(message);
+          err?.response?.data?.error?.message ??
+          'Invalid restaurant code or PIN',
+      );
     }
   };
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2 bg-bg text-fg">
-      {/* Left: form */}
+      {/* ── Left: form panel ── */}
       <div className="flex flex-col px-6 py-8 lg:px-16 lg:py-12">
+        {/* Brand */}
         <div className="flex items-center gap-2">
           <div className="h-7 w-7 grid place-items-center rounded-md bg-accent">
             <span className="text-[11px] font-bold text-white">S</span>
@@ -76,54 +123,61 @@ export default function LoginPage() {
 
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-[380px]">
-            <div className="mb-7">
+            {/* Header */}
+            <div className="mb-6">
               <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-              <p className="text-[13px] text-fg-muted mt-1.5">Welcome back. Enter your credentials to continue.</p>
+              <p className="text-[13px] text-fg-muted mt-1.5">
+                Welcome back. Choose your login method below.
+              </p>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-[12px] font-medium text-fg-muted">Email</Label>
-                <Input id="email" type="email" placeholder="you@restaurant.com" autoComplete="email" {...register("email")} />
-                {errors.email && <p className="text-[11px] text-danger mt-1">{errors.email.message}</p>}
-              </div>
+            {/* Tabs */}
+            <div className="flex gap-1 p-1 rounded-xl bg-surface-2 border border-border mb-6">
+              <TabButton
+                active={activeTab === AUTH_TABS.ADMIN}
+                onClick={() => {
+                  setActiveTab(AUTH_TABS.ADMIN);
+                  setAdminError(null);
+                }}
+              >
+                Owner / Admin
+              </TabButton>
+              <TabButton
+                active={activeTab === AUTH_TABS.STAFF}
+                onClick={() => {
+                  setActiveTab(AUTH_TABS.STAFF);
+                  setStaffError(null);
+                }}
+              >
+                Staff
+              </TabButton>
+            </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-[12px] font-medium text-fg-muted">Password</Label>
-                  <a className="text-[11px] text-fg-subtle hover:text-fg cursor-pointer">Forgot?</a>
+            {/* Form panels */}
+            {activeTab === AUTH_TABS.ADMIN ? (
+              <AdminLoginForm onSubmit={handleAdminSubmit} serverError={adminError} />
+            ) : (
+              <StaffLoginForm onSubmit={handleStaffSubmit} serverError={staffError} />
+            )}
+
+            {/* Register CTA — only shown on admin tab */}
+            {activeTab === AUTH_TABS.ADMIN && (
+              <div className="mt-5 rounded-lg border border-border bg-surface px-4 py-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[12px] font-medium text-fg">New restaurant?</p>
+                  <p className="text-[11px] text-fg-muted">Get set up in under a minute.</p>
                 </div>
-                <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" autoComplete="current-password" className="pr-10" {...register("password")} />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md text-fg-subtle hover:bg-surface-3 hover:text-fg-muted">
-                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                <Link href="/register">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 rounded-md border border-border bg-bg px-3 py-1.5 text-[12px] font-medium text-fg hover:bg-surface-3 transition-colors whitespace-nowrap"
+                  >
+                    <Store className="h-3 w-3" />
+                    Register
                   </button>
-                </div>
-                {errors.password && <p className="text-[11px] text-danger mt-1">{errors.password.message}</p>}
+                </Link>
               </div>
-
-              {serverError && (
-                <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-[12px] text-danger">{serverError}</div>
-              )}
-
-              <Button type="submit" size="lg" disabled={isSubmitting} className="w-full mt-2">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (<>Sign in <ArrowRight className="h-3.5 w-3.5" /></>)}
-              </Button>
-            </form>
-
-            <div className="mt-5 rounded-lg border border-border bg-surface px-4 py-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[12px] font-medium text-fg">New restaurant?</p>
-                <p className="text-[11px] text-fg-muted">Get set up in under a minute.</p>
-              </div>
-              <Link href="/register">
-                <button type="button" className="flex items-center gap-1.5 rounded-md border border-border bg-bg px-3 py-1.5 text-[12px] font-medium text-fg hover:bg-surface-3 transition-colors whitespace-nowrap">
-                  <Store className="h-3 w-3" />
-                  Register
-                </button>
-              </Link>
-            </div>
+            )}
 
             <p className="mt-6 text-[11px] text-fg-subtle text-center">
               Protected area. Unauthorized access is monitored and logged.
@@ -131,6 +185,7 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Footer */}
         <div className="flex items-center justify-between text-[11px] text-fg-subtle">
           <span>© {new Date().getFullYear()} SpiceOS</span>
           <div className="flex items-center gap-4">
@@ -141,12 +196,16 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right: visual panel */}
+      {/* ── Right: visual panel (unchanged) ── */}
       <div className="hidden lg:flex relative overflow-hidden border-l border-border bg-surface">
-        <div className="absolute inset-0 opacity-[0.04]" style={{
-          backgroundImage: "linear-gradient(hsl(var(--fg)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--fg)) 1px, transparent 1px)",
-          backgroundSize: "40px 40px"
-        }} />
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage:
+              'linear-gradient(hsl(var(--fg)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--fg)) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+          }}
+        />
         <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-bg/40 to-transparent" />
 
@@ -158,31 +217,42 @@ export default function LoginPage() {
 
           <div className="space-y-6">
             <div className="space-y-3">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-fg-subtle font-semibold">Kitchen operations, simplified</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-fg-subtle font-semibold">
+                Kitchen operations, simplified
+              </div>
               <h2 className="text-3xl font-semibold tracking-tight text-fg max-w-md leading-[1.15]">
                 The operating system for modern restaurants.
               </h2>
               <p className="text-[13px] text-fg-muted max-w-sm leading-relaxed">
-                Real-time KDS, order routing, menu control and live analytics — built for speed on the line.
+                Real-time KDS, order routing, menu control and live analytics — built for speed on
+                the line.
               </p>
             </div>
 
             {/* Mock KDS preview */}
             <div className="grid grid-cols-2 gap-2.5 max-w-md">
               {[
-                { n: "#A-1042", t: "02:14", s: "warning", l: "Prep" },
-                { n: "#A-1043", t: "00:48", s: "info", l: "New" },
-                { n: "#A-1041", t: "05:21", s: "danger", l: "Late" },
-                { n: "#A-1040", t: "Ready", s: "success", l: "Ready" },
+                { n: '#A-1042', t: '02:14', s: 'warning', l: 'Prep' },
+                { n: '#A-1043', t: '00:48', s: 'info', l: 'New' },
+                { n: '#A-1041', t: '05:21', s: 'danger', l: 'Late' },
+                { n: '#A-1040', t: 'Ready', s: 'success', l: 'Ready' },
               ].map((o, i) => (
                 <div key={i} className="rounded-lg border border-border bg-bg/60 p-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] font-semibold num">{o.n}</span>
-                    <span className={`text-[10px] uppercase font-semibold tracking-wider ${
-                      o.s === "warning" ? "text-warning" :
-                      o.s === "info" ? "text-info" :
-                      o.s === "danger" ? "text-danger" : "text-success"
-                    }`}>{o.l}</span>
+                    <span
+                      className={`text-[10px] uppercase font-semibold tracking-wider ${
+                        o.s === 'warning'
+                          ? 'text-warning'
+                          : o.s === 'info'
+                          ? 'text-info'
+                          : o.s === 'danger'
+                          ? 'text-danger'
+                          : 'text-success'
+                      }`}
+                    >
+                      {o.l}
+                    </span>
                   </div>
                   <div className="text-[10px] text-fg-subtle num">{o.t}</div>
                   <div className="mt-2 space-y-1">

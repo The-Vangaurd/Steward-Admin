@@ -1,72 +1,103 @@
-import { create } from "zustand";
-import type { User } from "@/types";
+import { create } from 'zustand';
+import type { User } from '@/types';
+import { USER_STORAGE_KEY, RESTAURANT_STORAGE_KEY } from '@/constants/auth';
 
-// ── SECURITY FIX: Access token removed from localStorage ──────────────────────
+// ── Security note ──────────────────────────────────────────────────────────────
 //
-// Previously:
-//   localStorage.setItem("auth-token", accessToken)   ← XSS-readable
-//   localStorage.setItem("auth-user", JSON.stringify(user))
+// accessToken  → in-memory ONLY (never localStorage/sessionStorage).
+// user         → localStorage (non-sensitive profile; survives hard refresh).
+// restaurant   → localStorage (non-sensitive; survives hard refresh).
+// refreshToken → httpOnly cookie set by backend (JS-unreadable).
 //
-// Now:
-//   accessToken lives ONLY in Zustand in-memory state.
-//   user object is persisted to localStorage (non-sensitive profile data only).
-//   refreshToken lives ONLY in httpOnly cookie (set by backend — JS-unreadable).
+// On hard refresh: user+restaurant are restored from localStorage immediately
+// so the UI renders without a flash. The axios interceptor calls /auth/refresh
+// on the first 401 to silently recover the accessToken from the cookie.
 //
-// On hard refresh the user object is restored from localStorage so the UI
-// can render immediately, but the access token is gone. The axios interceptor
-// in lib/axios.ts calls /auth/refresh on the first 401, which issues a new
-// access token from the httpOnly refresh cookie — the "silent login" flow.
-//
-// This means XSS can steal user profile data but NOT the tokens needed to
-// make authenticated API calls.
+// XSS impact: attacker can read user/restaurant profile but NOT call authed APIs.
 
-const USER_KEY = "auth-user";
+// ─── Restaurant shape ─────────────────────────────────────────────────────────
+
+export interface Restaurant {
+  id: string;
+  name: string;
+  slug: string;
+  restaurantCode?: string;
+}
+
+// ─── Store interface ──────────────────────────────────────────────────────────
 
 interface AuthStore {
-  /** In-memory only — never written to localStorage or sessionStorage */
+  /** In-memory only — never written to localStorage */
   accessToken: string | null;
-  /** Non-sensitive profile info — persisted for immediate UI render on refresh */
+  /** Non-sensitive profile — persisted for immediate UI render on refresh */
   user: User | null;
-  setAuth: (token: string, user: User) => void;
-  /** Call when a new access token is issued (silent refresh) without a user change */
+  /** Non-sensitive restaurant info — persisted alongside user */
+  restaurant: Restaurant | null;
+
+  /** Called after a successful email/password login or silent refresh. */
+  setAuth: (token: string, user: User, restaurant?: Restaurant | null) => void;
+  /** Called by the silent-refresh interceptor — only updates the token. */
   setAccessToken: (token: string) => void;
+  /** Hard logout — clears all client state and storage. */
   clearAuth: () => void;
 }
 
-function loadUserFromStorage(): User | null {
-  if (typeof window === "undefined") return null;
+// ─── Storage helpers ──────────────────────────────────────────────────────────
+
+function read<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as User) : null;
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 }
 
-export const useAuthStore = create<AuthStore>((set) => ({
-  // accessToken is intentionally NOT seeded from storage — it must come from
-  // the silent refresh flow so we always hold a fresh, valid JWT in memory.
-  accessToken: null,
-  user: loadUserFromStorage(),
+function write(key: string, value: unknown): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Storage quota exceeded — not fatal, just skip.
+  }
+}
 
-  setAuth: (token, user) => {
-    // Persist user profile (role, name, etc.) so the UI doesn't flash on reload.
-    // Never persist the access token.
-    if (typeof window !== "undefined") {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+function remove(key: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Ignore.
+  }
+}
+
+// ─── Store ────────────────────────────────────────────────────────────────────
+
+export const useAuthStore = create<AuthStore>((set) => ({
+  // accessToken intentionally NOT seeded from storage.
+  // It must come from the silent refresh flow so we always hold a fresh JWT.
+  accessToken: null,
+  user: read<User>(USER_STORAGE_KEY),
+  restaurant: read<Restaurant>(RESTAURANT_STORAGE_KEY),
+
+  setAuth: (token, user, restaurant = null) => {
+    write(USER_STORAGE_KEY, user);
+    if (restaurant) {
+      write(RESTAURANT_STORAGE_KEY, restaurant);
+    } else {
+      remove(RESTAURANT_STORAGE_KEY);
     }
-    set({ accessToken: token, user });
+    set({ accessToken: token, user, restaurant });
   },
 
   setAccessToken: (token) => {
-    // Used by the silent-refresh interceptor: only updates the token in memory.
     set({ accessToken: token });
   },
 
   clearAuth: () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(USER_KEY);
-    }
-    set({ accessToken: null, user: null });
+    remove(USER_STORAGE_KEY);
+    remove(RESTAURANT_STORAGE_KEY);
+    set({ accessToken: null, user: null, restaurant: null });
   },
 }));
