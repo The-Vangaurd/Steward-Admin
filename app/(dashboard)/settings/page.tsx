@@ -13,26 +13,37 @@ import { TabStaffNotifications } from "@/components/settings/TabStaffNotificatio
 import type { RestaurantSettings } from "@/types/settings";
 
 export default function SettingsPage() {
-  const { data: serverSettings, isLoading } = useRestaurantSettings();
+  const { data: serverSettings, isLoading, isError } = useRestaurantSettings();
   const { mutate: save, isPending: isSaving } = useUpdateRestaurantSettings();
 
-  const [draft, setDraft] = useState<RestaurantSettings | null>(null);
+  const [draft, setDraft]     = useState<RestaurantSettings | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
+  // Sync draft from server data:
+  // • On first load (draft is null) — initialise from server
+  // • After a successful save (isDirty resets to false) — re-sync so the draft
+  //   reflects the authoritative server response (e.g. normalised fields)
+  // • While the user has unsaved changes (isDirty) — do NOT overwrite their work
   useEffect(() => {
-    if (serverSettings && !draft) {
+    if (serverSettings && !isDirty) {
       setDraft(serverSettings);
     }
-  }, [serverSettings, draft]);
+  }, [serverSettings, isDirty]);
 
   const patch = (partial: Partial<RestaurantSettings>) => {
-    setDraft((prev) => prev ? { ...prev, ...partial } : prev);
+    setDraft((prev) => (prev ? { ...prev, ...partial } : prev));
     setIsDirty(true);
   };
 
   const handleSave = () => {
     if (!draft) return;
-    save(draft, { onSuccess: () => setIsDirty(false) });
+    save(draft, {
+      onSuccess: () => {
+        // isDirty → false allows the useEffect above to re-sync draft with
+        // the fresh server data that the mutation wrote into the query cache.
+        setIsDirty(false);
+      },
+    });
   };
 
   const handleReset = () => {
@@ -42,10 +53,23 @@ export default function SettingsPage() {
     }
   };
 
+  // Loading state
   if (isLoading || !draft) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-5 w-5 animate-spin text-fg-subtle" />
+      </div>
+    );
+  }
+
+  // Error state — shown if the API call fails with something other than 404
+  if (isError) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-3">
+        <p className="text-[13px] text-fg-subtle">Failed to load settings.</p>
+        <Button size="sm" variant="secondary" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
       </div>
     );
   }
@@ -99,11 +123,11 @@ export default function SettingsPage() {
       <Tabs defaultValue="general">
         <TabsList className="mb-6 flex-wrap h-auto gap-1 bg-surface border border-border p-1 rounded-lg">
           {[
-            { value: "general",      label: "General" },
-            { value: "branding",     label: "Branding" },
-            { value: "appearance",   label: "Menu Appearance" },
-            { value: "operations",   label: "Operations" },
-            { value: "notifications",label: "Staff & Notifications" },
+            { value: "general",       label: "General" },
+            { value: "branding",      label: "Branding" },
+            { value: "appearance",    label: "Menu Appearance" },
+            { value: "operations",    label: "Operations" },
+            { value: "notifications", label: "Staff & Notifications" },
           ].map((tab) => (
             <TabsTrigger
               key={tab.value}
