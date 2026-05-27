@@ -135,12 +135,20 @@ export function useRestaurantSettings() {
     queryKey: SETTINGS_QUERY_KEY,
     queryFn: async () => {
       try {
-        const { data } = await api.get<ApiSuccess<Partial<RawServerSettings>>>("/settings");
-        return normaliseSettings(data.data);
-      } catch (err: unknown) {
-        const e = err as { response?: { status?: number } };
-        // First-time setup: no settings row yet — use safe defaults
-        if (e?.response?.status === 404) return normaliseSettings({});
+        const { data } = await api.get<ApiSuccess<Partial<RestaurantSettings>>>("/settings");
+        return normaliseSettings(data.data ?? {});
+      } catch (err: any) {
+        // First-time setup: no settings exist yet — use safe defaults
+        if (err?.response?.status === 404) return normaliseSettings({});
+        // Temporary logging to help debug why settings fails to load in some
+        // environments. This can be removed once the root cause is identified.
+        try {
+          // Log HTTP status and response body if available
+          // eslint-disable-next-line no-console
+          console.error('[settings] fetch error', err?.response?.status, err?.response?.data ?? err.message);
+        } catch (e) {
+          // ignore logging errors
+        }
         throw err;
       }
     },
