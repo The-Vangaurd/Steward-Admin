@@ -4,8 +4,17 @@ function getDefaultWsUrl(): string {
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
     return 'http://localhost:4000';
   }
-
-  return 'https://steward-backend.onrender.com';
+  // In production, NEXT_PUBLIC_WS_URL must be set as a Vercel environment
+  // variable. Returning '' causes an obvious connection failure rather than
+  // silently using a stale hardcoded URL that breaks if the backend moves.
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+    console.error(
+      '[Steward] CRITICAL: NEXT_PUBLIC_WS_URL is not set. ' +
+      'Socket connections will fail. ' +
+      'Set this variable in Vercel (Settings → Environment Variables) and redeploy.'
+    );
+  }
+  return '';
 }
 
 const WS_URL =
@@ -58,9 +67,15 @@ export function disconnectSocket(): void {
 
 export function updateSocketAuth(token: string): void {
   if (!socket) return;
+  // Update the auth token used on the next handshake.
+  // Do NOT disconnect an active connection — the backend only verifies the
+  // JWT on initial connect, so an active socket stays valid until the server
+  // closes it. Disconnecting here would cause kitchen staff to miss new-order
+  // events during the ~2-3 s reconnect window that fires every 15 min.
   (socket as any).auth = { token };
-  // Force reconnect so the new token is used in the next handshake
-  if (socket.connected) {
-    socket.disconnect().connect();
+  // Only reconnect if currently disconnected (e.g. token expired mid-backoff
+  // and we now have a fresh one to retry with).
+  if (!socket.connected) {
+    socket.connect();
   }
 }

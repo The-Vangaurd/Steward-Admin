@@ -57,21 +57,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // (user in localStorage, token missing). We must actively call /auth/refresh
   // here — the axios 401 interceptor only fires when an API call returns 401,
   // which never happens while the loading spinner blocks all requests.
+  //
+  // NOTE: Render's Starter plan cold-starts can take 30–60 s. The 25 s timeout
+  // below prevents the loading spinner from hanging indefinitely. If the backend
+  // is slow to wake up, we show a "slow connection" message instead of a blank
+  // screen, then redirect to login only after the request actually fails.
+  const [isSlowConnection, setIsSlowConnection] = useState(false);
+
   useEffect(() => {
     if (!mounted || !isPendingRefresh) return;
 
     const baseURL = process.env.NEXT_PUBLIC_API_URL!;
+
+    // Show a "taking longer than usual" message after 8 s
+    const slowTimer = setTimeout(() => setIsSlowConnection(true), 8_000);
+    // Abort the request and force logout after 25 s (Render cold-start budget)
+    const controller = new AbortController();
+    const hardTimeout = setTimeout(() => controller.abort(), 25_000);
+
     import("axios").then(({ default: axios }) => {
       axios
-        .post(`${baseURL}/auth/refresh`, {}, { withCredentials: true })
+        .post(`${baseURL}/auth/refresh`, {}, {
+          withCredentials: true,
+          signal: controller.signal,
+        })
         .then(({ data }) => {
           useAuthStore.getState().setAccessToken(data.data.accessToken);
         })
         .catch(() => {
           useAuthStore.getState().clearAuth();
           router.replace("/login");
+        })
+        .finally(() => {
+          clearTimeout(slowTimer);
+          clearTimeout(hardTimeout);
+          setIsSlowConnection(false);
         });
     });
+
+    return () => {
+      clearTimeout(slowTimer);
+      clearTimeout(hardTimeout);
+      controller.abort();
+    };
   }, [mounted, isPendingRefresh, router]);
 
   useEffect(() => {
@@ -92,6 +120,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex flex-col items-center gap-2.5">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-fg-subtle border-t-fg" />
           <p className="text-[11px] font-medium text-fg-subtle tracking-wide uppercase">Loading</p>
+          {isSlowConnection && (
+            <p className="text-[11px] text-fg-subtle mt-1 max-w-[220px] text-center">
+              Server is waking up&nbsp;— this can take up to 30&nbsp;s on the first load.
+            </p>
+          )}
         </div>
       </div>
     );

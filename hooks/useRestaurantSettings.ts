@@ -195,22 +195,32 @@ export function useUpdateRestaurantSettings() {
         ? toBackendSettingsPatch(settingsFields as Partial<RestaurantSettings>)
         : {};
 
-      const promises: Promise<{ data?: { data?: Record<string, unknown> } }>[] = [];
+      // ── Sequential PATCH to avoid partial-save race condition ────────────────
+      // We previously used Promise.all() here, but that creates a race: if
+      // profilePATCH succeeds and settingsPATCH fails (or vice versa), the DB
+      // is left in a half-updated state that the rollback in onError can't undo
+      // (rollback only reverses the optimistic UI update, not the DB write).
+      //
+      // Sequential requests ensure that a failure stops before the second write.
+      // The latency cost is ~50–100 ms (one extra round-trip when both fields
+      // change together), which is acceptable for an infrequent settings save.
+      const results: { data?: { data?: Record<string, unknown> } }[] = [];
+
       if (hasProfile) {
-        promises.push(
-          api.patch<ApiSuccess<Record<string, unknown>>>("/settings/profile", profileFields)
-            .then((r) => r as { data?: { data?: Record<string, unknown> } })
+        const r = await api.patch<ApiSuccess<Record<string, unknown>>>(
+          "/settings/profile",
+          profileFields
         );
-      }
-      if (hasSettings && Object.keys(mappedSettingsFields).length > 0) {
-        promises.push(
-          api.patch<ApiSuccess<Record<string, unknown>>>("/settings", mappedSettingsFields)
-            .then((r) => r as { data?: { data?: Record<string, unknown> } })
-        );
+        results.push(r as { data?: { data?: Record<string, unknown> } });
       }
 
-      // Fire both patches in parallel — no dependency between them
-      const results = await Promise.all(promises);
+      if (hasSettings && Object.keys(mappedSettingsFields).length > 0) {
+        const r = await api.patch<ApiSuccess<Record<string, unknown>>>(
+          "/settings",
+          mappedSettingsFields
+        );
+        results.push(r as { data?: { data?: Record<string, unknown> } });
+      }
 
       // Merge both partial responses, then get the full canonical state by
       // re-fetching. This avoids the "partial response overwriting full cache"

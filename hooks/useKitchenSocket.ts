@@ -13,7 +13,7 @@
  * re-rendering when a single order changes.
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth.store";
 import { useBaseSocket } from "@/hooks/useBaseSocket";
@@ -87,4 +87,15 @@ export function useKitchenSocket({ enabled = true }: UseKitchenSocketOptions = {
       "item:availability_changed": invalidateMenuItems,
     },
   });
+
+  // Clear any pending debounce timer on unmount so we don't trigger a query
+  // invalidation against an already-torn-down component tree.
+  useEffect(() => {
+    return () => {
+      if (invalidateTimerRef.current) {
+        clearTimeout(invalidateTimerRef.current);
+        invalidateTimerRef.current = null;
+      }
+    };
+  }, []);
 }

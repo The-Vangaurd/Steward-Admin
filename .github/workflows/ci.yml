@@ -19,18 +19,36 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      # Validate that the required env var is configured in GitHub Secrets.
-      # Without this, Next.js embeds "undefined" as the API URL at build time,
-      # causing all production API calls to fail silently.
+      # Validate that required env vars are set in GitHub Secrets.
+      # NEXT_PUBLIC_* are embedded at build time — a missing value means
+      # the deployed app sends requests to "" and every API call fails.
       - name: Validate required environment variables
         run: |
+          MISSING=""
           if [ -z "${{ secrets.NEXT_PUBLIC_API_URL }}" ]; then
             echo "❌ ERROR: NEXT_PUBLIC_API_URL secret is not set."
-            echo "Go to: Repository Settings → Secrets and variables → Actions"
-            echo "Add a secret named NEXT_PUBLIC_API_URL with your backend URL."
+            MISSING="$MISSING NEXT_PUBLIC_API_URL"
+          else
+            echo "✓ NEXT_PUBLIC_API_URL is set"
+          fi
+          if [ -z "${{ secrets.NEXT_PUBLIC_WS_URL }}" ]; then
+            echo "❌ ERROR: NEXT_PUBLIC_WS_URL secret is not set."
+            MISSING="$MISSING NEXT_PUBLIC_WS_URL"
+          else
+            echo "✓ NEXT_PUBLIC_WS_URL is set"
+          fi
+          if [ -n "$MISSING" ]; then
+            echo ""
+            echo "Add the missing secrets at:"
+            echo "  Repository Settings → Secrets and variables → Actions"
             exit 1
           fi
-          echo "✓ NEXT_PUBLIC_API_URL is set"
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build
         env:
