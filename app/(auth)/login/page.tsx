@@ -1,18 +1,39 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Store } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+
 import { useAuthStore } from '@/stores/auth.store';
-import { AdminLoginForm, type AdminLoginValues } from '@/components/auth/AdminLoginForm';
-import { StaffLoginForm, type StaffLoginValues } from '@/components/auth/StaffLoginForm';
-import { AUTH_TABS, getRedirectPath, type AuthTab } from '@/constants/auth';
+import {
+  AdminLoginForm,
+  type AdminLoginValues,
+} from '@/components/auth/AdminLoginForm';
+import {
+  StaffLoginForm,
+  type StaffLoginValues,
+} from '@/components/auth/StaffLoginForm';
+import {
+  AUTH_TABS,
+  getRedirectPath,
+  type AuthTab,
+} from '@/constants/auth';
+
 import api from '@/lib/axios';
 import type { ApiSuccess, LoginResponse } from '@/types';
 
-// ─── Staff login response shape ───────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Force runtime rendering to avoid prerender build failures
+// caused by useSearchParams + client auth state.
+// ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+// Staff login response
+// ─────────────────────────────────────────────────────────────
 
 interface StaffLoginResponse extends LoginResponse {
   restaurant: {
@@ -23,7 +44,9 @@ interface StaffLoginResponse extends LoginResponse {
   };
 }
 
-// ─── Tab button ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Tab button
+// ─────────────────────────────────────────────────────────────
 
 function TabButton({
   active,
@@ -49,85 +72,148 @@ function TabButton({
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const { accessToken, user, setAuth } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<AuthTab>(AUTH_TABS.ADMIN);
-  const [adminError, setAdminError] = useState<string | null>(null);
-  const [staffError, setStaffError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<AuthTab>(
+    AUTH_TABS.ADMIN
+  );
 
-  // Auto-redirect if already authenticated
+  const [adminError, setAdminError] = useState<string | null>(
+    null
+  );
+
+  const [staffError, setStaffError] = useState<string | null>(
+    null
+  );
+
+  // ─────────────────────────────────────────────────────────
+  // Auto redirect if already authenticated
+  // ─────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (accessToken && user) {
       const next = searchParams.get('next');
-      router.replace(next ? decodeURIComponent(next) : getRedirectPath(user.role));
+
+      router.replace(
+        next
+          ? decodeURIComponent(next)
+          : getRedirectPath(user.role)
+      );
     }
   }, [accessToken, user, router, searchParams]);
 
-  // ── Admin login ────────────────────────────────────────────────────────────
-  const handleAdminSubmit = async (values: AdminLoginValues) => {
+  // ─────────────────────────────────────────────────────────
+  // Admin login
+  // ─────────────────────────────────────────────────────────
+
+  const handleAdminSubmit = async (
+    values: AdminLoginValues
+  ) => {
     setAdminError(null);
+
     try {
-      const { data } = await api.post<ApiSuccess<LoginResponse>>('/auth/login', {
+      const { data } = await api.post<
+        ApiSuccess<LoginResponse>
+      >('/auth/login', {
         email: values.email,
         password: values.password,
       });
+
       setAuth(data.data.accessToken, data.data.user);
+
       toast.success('Signed in successfully');
+
       const next = searchParams.get('next');
-      router.push(next ? decodeURIComponent(next) : getRedirectPath(data.data.user.role));
+
+      router.push(
+        next
+          ? decodeURIComponent(next)
+          : getRedirectPath(data.data.user.role)
+      );
     } catch (err: any) {
       setAdminError(
         err?.response?.data?.message ??
           err?.response?.data?.error?.message ??
-          'Invalid email or password',
+          'Invalid email or password'
       );
     }
   };
 
-  // ── Staff login ────────────────────────────────────────────────────────────
-  const handleStaffSubmit = async (values: StaffLoginValues) => {
+  // ─────────────────────────────────────────────────────────
+  // Staff login
+  // ─────────────────────────────────────────────────────────
+
+  const handleStaffSubmit = async (
+    values: StaffLoginValues
+  ) => {
     setStaffError(null);
+
     try {
-      const { data } = await api.post<ApiSuccess<StaffLoginResponse>>('/auth/staff-login', {
+      const { data } = await api.post<
+        ApiSuccess<StaffLoginResponse>
+      >('/auth/staff-login', {
         restaurantCode: values.restaurantCode,
         pin: values.pin,
       });
-      setAuth(data.data.accessToken, data.data.user, data.data.restaurant);
-      toast.success(`Welcome, ${data.data.user.firstName}!`);
-      router.push(getRedirectPath(data.data.user.role));
+
+      setAuth(
+        data.data.accessToken,
+        data.data.user,
+        data.data.restaurant
+      );
+
+      toast.success(
+        `Welcome, ${data.data.user.firstName}!`
+      );
+
+      router.push(
+        getRedirectPath(data.data.user.role)
+      );
     } catch (err: any) {
       setStaffError(
         err?.response?.data?.message ??
           err?.response?.data?.error?.message ??
-          'Invalid restaurant code or PIN',
+          'Invalid restaurant code or PIN'
       );
     }
   };
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2 bg-bg text-fg">
-      {/* ── Left: form panel ── */}
+      {/* Left panel */}
       <div className="flex flex-col px-6 py-8 lg:px-16 lg:py-12">
         {/* Brand */}
         <div className="flex items-center gap-2">
           <div className="h-7 w-7 grid place-items-center rounded-md bg-accent">
-            <span className="text-[11px] font-bold text-white">S</span>
+            <span className="text-[11px] font-bold text-white">
+              S
+            </span>
           </div>
-          <div className="text-[13px] font-semibold tracking-tight">SpiceOS</div>
+
+          <div className="text-[13px] font-semibold tracking-tight">
+            SpiceOS
+          </div>
         </div>
 
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-[380px]">
             {/* Header */}
             <div className="mb-6">
-              <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                Sign in
+              </h1>
+
               <p className="text-[13px] text-fg-muted mt-1.5">
-                Welcome back. Choose your login method below.
+                Welcome back. Choose your login method
+                below.
               </p>
             </div>
 
@@ -142,6 +228,7 @@ export default function LoginPage() {
               >
                 Owner / Admin
               </TabButton>
+
               <TabButton
                 active={activeTab === AUTH_TABS.STAFF}
                 onClick={() => {
@@ -153,20 +240,32 @@ export default function LoginPage() {
               </TabButton>
             </div>
 
-            {/* Form panels */}
+            {/* Forms */}
             {activeTab === AUTH_TABS.ADMIN ? (
-              <AdminLoginForm onSubmit={handleAdminSubmit} serverError={adminError} />
+              <AdminLoginForm
+                onSubmit={handleAdminSubmit}
+                serverError={adminError}
+              />
             ) : (
-              <StaffLoginForm onSubmit={handleStaffSubmit} serverError={staffError} />
+              <StaffLoginForm
+                onSubmit={handleStaffSubmit}
+                serverError={staffError}
+              />
             )}
 
-            {/* Register CTA — only shown on admin tab */}
+            {/* Register CTA */}
             {activeTab === AUTH_TABS.ADMIN && (
               <div className="mt-5 rounded-lg border border-border bg-surface px-4 py-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[12px] font-medium text-fg">New restaurant?</p>
-                  <p className="text-[11px] text-fg-muted">Get set up in under a minute.</p>
+                  <p className="text-[12px] font-medium text-fg">
+                    New restaurant?
+                  </p>
+
+                  <p className="text-[11px] text-fg-muted">
+                    Get set up in under a minute.
+                  </p>
                 </div>
+
                 <Link href="/register">
                   <button
                     type="button"
@@ -180,23 +279,33 @@ export default function LoginPage() {
             )}
 
             <p className="mt-6 text-[11px] text-fg-subtle text-center">
-              Protected area. Unauthorized access is monitored and logged.
+              Protected area. Unauthorized access is
+              monitored and logged.
             </p>
           </div>
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between text-[11px] text-fg-subtle">
-          <span>© {new Date().getFullYear()} SpiceOS</span>
+          <span>© 2026 SpiceOS</span>
+
           <div className="flex items-center gap-4">
-            <a className="hover:text-fg-muted cursor-pointer">Privacy</a>
-            <a className="hover:text-fg-muted cursor-pointer">Terms</a>
-            <a className="hover:text-fg-muted cursor-pointer">Status</a>
+            <a className="hover:text-fg-muted cursor-pointer">
+              Privacy
+            </a>
+
+            <a className="hover:text-fg-muted cursor-pointer">
+              Terms
+            </a>
+
+            <a className="hover:text-fg-muted cursor-pointer">
+              Status
+            </a>
           </div>
         </div>
       </div>
 
-      {/* ── Right: visual panel (unchanged) ── */}
+      {/* Right visual panel */}
       <div className="hidden lg:flex relative overflow-hidden border-l border-border bg-surface">
         <div
           className="absolute inset-0 opacity-[0.04]"
@@ -206,13 +315,18 @@ export default function LoginPage() {
             backgroundSize: '40px 40px',
           }}
         />
+
         <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
+
         <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-bg/40 to-transparent" />
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div className="flex items-center gap-1.5 text-[11px] text-fg-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-success live-dot" />
-            <span className="uppercase tracking-wider font-medium">All systems operational</span>
+
+            <span className="uppercase tracking-wider font-medium">
+              All systems operational
+            </span>
           </div>
 
           <div className="space-y-6">
@@ -220,51 +334,24 @@ export default function LoginPage() {
               <div className="text-[10px] uppercase tracking-[0.2em] text-fg-subtle font-semibold">
                 Kitchen operations, simplified
               </div>
-              <h2 className="text-3xl font-semibold tracking-tight text-fg max-w-md leading-[1.15]">
-                The operating system for modern restaurants.
-              </h2>
-              <p className="text-[13px] text-fg-muted max-w-sm leading-relaxed">
-                Real-time KDS, order routing, menu control and live analytics — built for speed on
-                the line.
-              </p>
-            </div>
 
-            {/* Mock KDS preview */}
-            <div className="grid grid-cols-2 gap-2.5 max-w-md">
-              {[
-                { n: '#A-1042', t: '02:14', s: 'warning', l: 'Prep' },
-                { n: '#A-1043', t: '00:48', s: 'info', l: 'New' },
-                { n: '#A-1041', t: '05:21', s: 'danger', l: 'Late' },
-                { n: '#A-1040', t: 'Ready', s: 'success', l: 'Ready' },
-              ].map((o, i) => (
-                <div key={i} className="rounded-lg border border-border bg-bg/60 p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-semibold num">{o.n}</span>
-                    <span
-                      className={`text-[10px] uppercase font-semibold tracking-wider ${
-                        o.s === 'warning'
-                          ? 'text-warning'
-                          : o.s === 'info'
-                          ? 'text-info'
-                          : o.s === 'danger'
-                          ? 'text-danger'
-                          : 'text-success'
-                      }`}
-                    >
-                      {o.l}
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-fg-subtle num">{o.t}</div>
-                  <div className="mt-2 space-y-1">
-                    <div className="h-1 rounded-full bg-surface-3" />
-                    <div className="h-1 rounded-full bg-surface-3 w-2/3" />
-                  </div>
-                </div>
-              ))}
+              <h2 className="text-3xl font-semibold tracking-tight text-fg max-w-md leading-[1.15]">
+                The operating system for modern
+                restaurants.
+              </h2>
+
+              <p className="text-[13px] text-fg-muted max-w-sm leading-relaxed">
+                Real-time KDS, order routing, menu
+                control and live analytics — built for
+                speed on the line.
+              </p>
             </div>
           </div>
 
-          <div className="text-[11px] text-fg-subtle" aria-hidden="true" />
+          <div
+            className="text-[11px] text-fg-subtle"
+            aria-hidden="true"
+          />
         </div>
       </div>
     </div>
