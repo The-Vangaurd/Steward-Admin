@@ -33,15 +33,16 @@ function formatAddress(addr: unknown): string {
  * default instead of undefined — which would crash tab components that
  * destructure fields unconditionally.
  */
-function normaliseSettings(raw: Partial<RestaurantSettings>): RestaurantSettings {
+function normaliseSettings(raw: Partial<RestaurantSettings> | null | undefined): RestaurantSettings {
+  const settings = raw ?? {};
   return {
     ...DEFAULT_SETTINGS,
-    ...raw,
-    address: formatAddress(raw.address),
+    ...settings,
+    address: formatAddress(settings.address),
     // openingHours must always be a complete schedule — guard against null/partial
     openingHours: {
       ...DEFAULT_SETTINGS.openingHours,
-      ...(raw.openingHours ?? {}),
+      ...(settings.openingHours ?? {}),
     },
   };
 }
@@ -52,7 +53,7 @@ export function useRestaurantSettings() {
     queryFn: async () => {
       try {
         const { data } = await api.get<ApiSuccess<Partial<RestaurantSettings>>>("/settings");
-        return normaliseSettings(data.data);
+        return normaliseSettings(data.data ?? {});
       } catch (err: any) {
         // First-time setup: no settings exist yet — use safe defaults
         if (err?.response?.status === 404) return normaliseSettings({});
