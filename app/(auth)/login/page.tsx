@@ -194,9 +194,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="text-[11px] text-fg-subtle">
-            Trusted by kitchens running <span className="text-fg-muted font-medium num">2.4M+</span> orders / month.
-          </div>
+          <div className="text-[11px] text-fg-subtle" aria-hidden="true" />
         </div>
       </div>
     </div>
