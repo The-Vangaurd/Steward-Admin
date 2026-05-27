@@ -11,15 +11,15 @@ import { useKitchenSocket } from "@/hooks/useKitchenSocket";
 import { useRequireAuth } from "@/hooks/useAuth";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/dashboard":            "Overview",
-  "/kds":                  "Kitchen Display",
-  "/orders":               "Orders",
-  "/menu":                 "Menu",
-  "/staff":                "Staff",
-  "/settings":             "Settings",
-  "/kitchen":              "Order Queue",
+  "/dashboard": "Overview",
+  "/kds": "Kitchen Display",
+  "/orders": "Orders",
+  "/menu": "Menu",
+  "/staff": "Staff",
+  "/settings": "Settings",
+  "/kitchen": "Order Queue",
   "/kitchen/availability": "Item Availability",
-  "/dosa-counter":         "Dosa Counter",
+  "/dosa-counter": "Dosa Counter",
 };
 
 // Admin-only routes — KITCHEN_STAFF / WAITER gets redirected away from these
@@ -48,6 +48,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useKitchenSocket();
 
   useEffect(() => { setMounted(true); }, []);
+
+  // ── Silent refresh on hard reload ──────────────────────────────────────────
+  // After the security refactor, accessToken is in-memory only (never in
+  // localStorage). On a hard refresh it starts as null even for a logged-in
+  // user. isPendingRefresh catches this state (user known, token missing).
+  //
+  // Previously the app relied on the axios 401 interceptor to trigger a
+  // refresh, but that only fires when an actual API call returns 401. Here,
+  // nothing makes an API call while the loading spinner is showing, so the
+  // refresh never happened → infinite spinner.
+  //
+  // Fix: explicitly call /auth/refresh as soon as we detect isPendingRefresh.
+  // Raw axios (not the `api` instance) is used to avoid triggering the
+  // response interceptor recursively, matching the same pattern used inside
+  // lib/axios.ts for the 401 retry path.
+  useEffect(() => {
+    if (!mounted || !isPendingRefresh) return;
+
+    const baseURL = process.env.NEXT_PUBLIC_API_URL!;
+
+    import("axios").then(({ default: axios }) => {
+      axios
+        .post(`${baseURL}/auth/refresh`, {}, { withCredentials: true })
+        .then(({ data }) => {
+          useAuthStore.getState().setAccessToken(data.data.accessToken);
+        })
+        .catch(() => {
+          // Refresh cookie is gone — treat as logged out
+          useAuthStore.getState().clearAuth();
+          router.replace("/login");
+        });
+    });
+  }, [mounted, isPendingRefresh, router]);
 
   useEffect(() => {
     if (!mounted) return;
