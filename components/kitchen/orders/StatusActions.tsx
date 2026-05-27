@@ -2,7 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { useCallback, memo } from "react";
-import { useOrderStatus } from "@/hooks/useOrderStatus";
+import { useKitchenStatusMutation } from "@/hooks/useKitchenOrders";
 import { ORDER_STATUS_FLOW, STATUS_ACTION_LABELS } from "@/types";
 import type { OrderStatus, KitchenOrder } from "@/types";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ interface StatusActionsProps {
 }
 
 export const StatusActions = memo(function StatusActions({ order }: StatusActionsProps) {
-  const { mutate, isPending, variables } = useOrderStatus();
+  const { mutate, isPending, variables } = useKitchenStatusMutation();
   const { captureSnapshot } = useKitchenUndo();
 
   const nextStatuses = ORDER_STATUS_FLOW[order.status];

@@ -52,6 +52,9 @@ export function useBaseSocket({
     updateSocketAuth(accessToken);
 
     const handleConnect = () => {
+      if ((socket as any).data) {
+        (socket as any).data.tokenRetryCount = 0;
+      }
       for (const room of rooms) {
         socket.emit("join_room", room, (err: { code: string; message: string } | null) => {
           if (err) console.error("[socket] failed to join room", { room, err });
@@ -72,13 +75,17 @@ export function useBaseSocket({
       onConnectError?.(err);
 
       if (err.message === "TOKEN_EXPIRED") {
-        // Pull the latest in-memory token (may have been refreshed by the
-        // axios interceptor since the last socket handshake) and reconnect.
+        const retryCount = ((socket as any).data?.tokenRetryCount ?? 0) as number;
+        if (retryCount >= 3) {
+          console.error("[socket] max token retry attempts reached, giving up");
+          return;
+        }
+        (socket as any).data = { ...(socket as any).data, tokenRetryCount: retryCount + 1 };
         setTimeout(() => {
           const freshToken = useAuthStore.getState().accessToken;
           if (freshToken) updateSocketAuth(freshToken);
           socket.connect();
-        }, 2000);
+        }, 2000 * (retryCount + 1));
       }
     };
 

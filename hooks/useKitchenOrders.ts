@@ -175,6 +175,3 @@ export function useKitchenStatusMutation() {
     },
   });
 }
-
-// Single canonical alias — import useKitchenStatusMutation directly instead
-export const useOrderStatus = useKitchenStatusMutation;
