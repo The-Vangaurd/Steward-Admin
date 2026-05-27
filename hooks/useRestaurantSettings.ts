@@ -10,6 +10,23 @@ import { DEFAULT_SETTINGS } from "@/types/settings";
 
 export const SETTINGS_QUERY_KEY = ["restaurant-settings"] as const;
 
+function formatAddress(addr: unknown): string {
+  if (!addr) return "";
+  if (typeof addr === "string") return addr;
+  if (typeof addr === "object") {
+    const a = addr as Record<string, unknown>;
+    if (a.street || a.city || a.state || a.zip) {
+      return [a.street, a.city, a.state, a.zip].filter(Boolean).join(", ");
+    }
+    try {
+      return JSON.stringify(a);
+    } catch {
+      return "";
+    }
+  }
+  return String(addr);
+}
+
 /**
  * Merge server data with DEFAULT_SETTINGS so any field the backend hasn't
  * persisted yet (e.g. openingHours on a fresh account) is filled with a safe
@@ -20,6 +37,7 @@ function normaliseSettings(raw: Partial<RestaurantSettings>): RestaurantSettings
   return {
     ...DEFAULT_SETTINGS,
     ...raw,
+    address: formatAddress(raw.address),
     // openingHours must always be a complete schedule — guard against null/partial
     openingHours: {
       ...DEFAULT_SETTINGS.openingHours,
