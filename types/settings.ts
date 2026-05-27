@@ -1,4 +1,22 @@
 // ─── Restaurant Settings Types ────────────────────────────────────────────────
+//
+// FIELD MAPPING CONTRACT (frontend ↔ backend)
+// ─────────────────────────────────────────────
+// The frontend uses a single `fontFamily` field (set by the branding tab).
+// The backend stores two separate fields: `fontBody` and `fontHeading`.
+//
+// Normalisation rules (enforced in useRestaurantSettings.ts):
+//   GET  /settings  → fontBody  (or fontHeading fallback) → mapped to fontFamily
+//   PATCH /settings → fontFamily → mapped to fontBody (and fontHeading for parity)
+//
+// The frontend NEVER sends `fontBody` or `fontHeading` directly.
+// The backend NEVER sees `fontFamily` in a PATCH body.
+//
+// `secondaryColor` is stored in the DB but is not yet surfaced in the UI.
+// It is included in the type so normalisation doesn't strip it from the cache.
+//
+// `slug` is returned by the backend and preserved in the normalised object so
+// downstream code (e.g. menu URL construction) can reference it.
 
 export interface OpeningHours {
   open: string;   // "09:00"
@@ -39,12 +57,22 @@ export interface RestaurantSettings {
   address: string;
   currency: string;
   timezone: string;
+  /** Preserved from backend response; used to build public menu URLs. */
+  slug?: string;
 
   // Branding
   logoUrl: string;
   bannerUrl: string;
   primaryColor: string;
+  /** Stored in DB as `secondaryColor`; not yet exposed in the branding UI. */
+  secondaryColor?: string;
   accentColor: string;
+  /**
+   * Single font family used for the customer-facing menu.
+   * Mapped from/to backend `fontBody` (and `fontHeading` on write) by the
+   * normalisation layer in useRestaurantSettings.ts.
+   * Components must ALWAYS use this field — never `fontBody`/`fontHeading`.
+   */
   fontFamily: string;
 
   // Menu Appearance
@@ -81,6 +109,7 @@ export const DEFAULT_SETTINGS: RestaurantSettings = {
   logoUrl: "",
   bannerUrl: "",
   primaryColor: "#8B5CF6",
+  secondaryColor: "",
   accentColor: "#3B82F6",
   fontFamily: "Inter",
   menuLayout: "grid",
