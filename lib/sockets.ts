@@ -1,9 +1,17 @@
 import { io, type Socket } from 'socket.io-client';
 
+function getDefaultWsUrl(): string {
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:4000';
+  }
+
+  return 'https://steward-backend.onrender.com';
+}
+
 const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL ??
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1\/?$/, '') ??
-  'http://localhost:4000';
+  process.env.NEXT_PUBLIC_WS_URL ||
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1\/?$/, '') ||
+  getDefaultWsUrl();
 
 let socket: Socket | null = null;
 let activeConsumers = 0;

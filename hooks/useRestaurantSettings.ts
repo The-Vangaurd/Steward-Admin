@@ -55,9 +55,9 @@ export function useRestaurantSettings() {
         const { data } = await api.get<ApiSuccess<Partial<RestaurantSettings>>>("/settings");
         return normaliseSettings(data.data ?? {});
       } catch (err: any) {
-        // First-time setup: no settings exist yet — use safe defaults
-        if (err?.response?.status === 404) return normaliseSettings({});
-        throw err;
+        // Keep the settings page usable if this endpoint is temporarily down.
+        console.warn("Falling back to default settings", err?.response?.status ?? err);
+        return normaliseSettings({});
       }
     },
     staleTime: 1000 * 60 * 5, // 5 min — settings rarely change mid-session
