@@ -136,12 +136,13 @@ api.interceptors.response.use(
         // Retry the original request with the fresh token
         error.config.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(error.config);
-      } catch {
+      } catch (refreshError) {
         // Refresh failed (expired cookie, revoked session, network error)
         getAuthStore().getState().clearAuth();
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }
+        return Promise.reject(refreshError);
       }
     }
 
