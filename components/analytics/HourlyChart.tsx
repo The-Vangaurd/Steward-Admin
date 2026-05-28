@@ -4,7 +4,7 @@ import { memo, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { HourlyDataPoint } from "@/types";
-import type { TooltipProps } from "recharts";
+
 
 const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart as any), { ssr: false }) as any;
 const Bar = dynamic(() => import("recharts").then((m) => m.Bar as any), { ssr: false }) as any;
@@ -24,7 +24,13 @@ function formatHour(h: number) {
   return `${h - 12}p`;
 }
 
-const CustomTooltip = memo(function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number | string }>;
+  label?: string;
+}
+
+const CustomTooltip = memo(function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 shadow-elevated">
