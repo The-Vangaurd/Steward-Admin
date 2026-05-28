@@ -1,96 +1,199 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, ExternalLink } from "lucide-react";
+import {
+  Copy, Check, ExternalLink, Download, QrCode, Link2,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SettingsSection, SettingsRow } from "./SettingsShell";
 import type { RestaurantSettings } from "@/types/settings";
 import { CURRENCIES, TIMEZONES } from "@/types/settings";
 
-// ── Menu link helpers ─────────────────────────────────────────────────────────
+// ─── Menu URL helper ──────────────────────────────────────────────────────────
+// Reads NEXT_PUBLIC_MENU_URL set in Vercel env vars.
+// Falls back to port-swap for local dev (admin on :3000, menu on :3001).
 
-const MENU_BASE_URL =
-  process.env.NEXT_PUBLIC_MENU_URL?.replace(/\/$/, "") ||
-  (typeof window !== "undefined"
-    ? window.location.origin.replace(":3000", ":3001") // local dev fallback
-    : "");
+function getMenuBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_MENU_URL;
+  if (envUrl) return envUrl.replace(/\/$/, "");
+  if (typeof window !== "undefined") {
+    return window.location.origin.replace(":3000", ":3001");
+  }
+  return "";
+}
 
-function MenuLinkRow({ slug }: { slug?: string | null }) {
-  const [copied, setCopied] = useState(false);
+// ─── QR code URL ──────────────────────────────────────────────────────────────
+// Uses qrserver.com — free, no API key, no npm package needed.
+
+function qrImageUrl(data: string, size = 240): string {
+  return (
+    `https://api.qrserver.com/v1/create-qr-code/` +
+    `?size=${size}x${size}&data=${encodeURIComponent(data)}&format=png&margin=2`
+  );
+}
+
+// ─── MenuQrSection ────────────────────────────────────────────────────────────
+
+interface MenuQrSectionProps {
+  slug?: string | null;
+  restaurantName?: string;
+}
+
+function MenuQrSection({ slug, restaurantName }: MenuQrSectionProps) {
+  const [linkCopied, setLinkCopied]   = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   if (!slug) {
     return (
-      <SettingsRow
-        label="Customer menu link"
-        description="Share this URL with customers to let them browse and order"
-      >
-        <p className="text-[12px] text-fg-subtle italic">
-          No slug set — save your restaurant name to generate a link.
+      <div className="rounded-xl border border-border bg-surface px-5 py-5">
+        <div className="flex items-center gap-2 mb-1">
+          <QrCode className="h-4 w-4 text-fg-subtle" />
+          <span className="text-[13px] font-semibold text-fg">Menu link & QR code</span>
+        </div>
+        <p className="text-[12px] text-fg-subtle">
+          Your menu link and QR code will appear here once your restaurant profile is saved.
         </p>
-      </SettingsRow>
+      </div>
     );
   }
 
-  const menuUrl = `${MENU_BASE_URL}/menu/${slug}`;
+  const menuUrl  = `${getMenuBaseUrl()}/menu/${slug}`;
+  const qrUrl    = qrImageUrl(menuUrl, 240);
+  const filename = `${slug}-menu-qr.png`;
 
-  const handleCopy = async () => {
+  // ── Copy link ──────────────────────────────────────────────────────────────
+  const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(menuUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback for older browsers
       const el = document.createElement("textarea");
       el.value = menuUrl;
       document.body.appendChild(el);
       el.select();
       document.execCommand("copy");
       document.body.removeChild(el);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    }
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  // ── Download QR ────────────────────────────────────────────────────────────
+  // Fetch as blob so the browser saves it as a file instead of opening it.
+  const handleDownloadQr = async () => {
+    setDownloading(true);
+    try {
+      const res  = await fetch(qrUrl);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback: open in new tab
+      window.open(qrUrl, "_blank");
+    } finally {
+      setDownloading(false);
     }
   };
 
   return (
-    <SettingsRow
-      label="Customer menu link"
-      description="Share this URL with customers to let them browse and order"
-    >
-      <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-md border border-border bg-surface-2 px-3 py-2">
-          <span className="text-[12px] text-fg-subtle truncate flex-1 font-mono select-all">
-            {menuUrl}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={handleCopy}
-          title="Copy link"
-          className="shrink-0 flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-2 text-[12px] font-medium text-fg hover:bg-surface-2 transition-colors"
-        >
-          {copied ? (
-            <Check className="h-3.5 w-3.5 text-green-500" />
-          ) : (
-            <Copy className="h-3.5 w-3.5" />
-          )}
-          {copied ? "Copied" : "Copy"}
-        </button>
-        <a
-          href={menuUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Open menu"
-          className="shrink-0 flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-2 text-[12px] font-medium text-fg hover:bg-surface-2 transition-colors"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          Open
-        </a>
+    <div className="rounded-xl border border-border bg-surface px-5 py-5">
+
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-4">
+        <QrCode className="h-4 w-4 text-fg-subtle" />
+        <span className="text-[13px] font-semibold text-fg">Menu link & QR code</span>
       </div>
-    </SettingsRow>
+
+      <div className="flex flex-col sm:flex-row gap-6">
+
+        {/* ── QR image ── */}
+        <div className="shrink-0 flex flex-col items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={qrUrl}
+            alt={`QR code for ${restaurantName ?? slug} menu`}
+            width={140}
+            height={140}
+            className="rounded-lg border border-border bg-white p-2"
+          />
+          <button
+            type="button"
+            onClick={handleDownloadQr}
+            disabled={downloading}
+            className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5 text-[12px] font-medium text-fg hover:bg-surface-2 transition-colors disabled:opacity-50 w-full justify-center"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {downloading ? "Downloading…" : "Download QR"}
+          </button>
+        </div>
+
+        {/* ── Link + instructions ── */}
+        <div className="flex-1 min-w-0 flex flex-col gap-3">
+
+          <p className="text-[12px] text-fg-subtle">
+            Share this link or print the QR code — customers scan it to browse
+            your menu and place orders directly from their phone.
+          </p>
+
+          {/* URL row */}
+          <div>
+            <div className="text-[11px] font-medium text-fg-subtle uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <Link2 className="h-3 w-3" />
+              Your menu URL
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0 rounded-md border border-border bg-surface-2 px-3 py-2">
+                <span className="text-[12px] text-fg font-mono truncate block select-all">
+                  {menuUrl}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                title="Copy link"
+                className="shrink-0 flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-2 text-[12px] font-medium text-fg hover:bg-surface-2 transition-colors"
+              >
+                {linkCopied
+                  ? <Check className="h-3.5 w-3.5 text-green-500" />
+                  : <Copy className="h-3.5 w-3.5" />}
+                {linkCopied ? "Copied!" : "Copy"}
+              </button>
+              <a
+                href={menuUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open menu in new tab"
+                className="shrink-0 flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-2 text-[12px] font-medium text-fg hover:bg-surface-2 transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open
+              </a>
+            </div>
+          </div>
+
+          {/* Usage tips */}
+          <div className="rounded-lg bg-surface-2 border border-border px-3 py-2.5 space-y-1">
+            <p className="text-[11px] font-medium text-fg">How to use</p>
+            <ul className="text-[11px] text-fg-subtle space-y-0.5 list-disc list-inside">
+              <li>Print the QR code and place it on tables or at the entrance</li>
+              <li>Share the link on Instagram, WhatsApp, or Google Maps</li>
+              <li>Customers scan → browse your menu → place order instantly</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div>
   );
 }
+
+// ─── TabGeneral ───────────────────────────────────────────────────────────────
 
 interface Props {
   settings: RestaurantSettings;
@@ -104,11 +207,10 @@ export function TabGeneral({ settings, onChange }: Props) {
   return (
     <div className="space-y-6">
 
-      {/* ── Menu link — read-only, always visible ── */}
-      <SettingsSection>
-        <MenuLinkRow slug={settings.slug} />
-      </SettingsSection>
+      {/* ── Menu link & QR code — read-only, shown for every restaurant ── */}
+      <MenuQrSection slug={settings.slug} restaurantName={settings.name} />
 
+      {/* ── Restaurant profile ── */}
       <SettingsSection>
         <SettingsRow label="Restaurant name" description="Displayed to customers across the platform">
           <Input value={settings.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. SpiceOS Restaurant" />
@@ -132,6 +234,7 @@ export function TabGeneral({ settings, onChange }: Props) {
         </SettingsRow>
       </SettingsSection>
 
+      {/* ── Localisation ── */}
       <SettingsSection>
         <SettingsRow label="Currency" description="Used for all pricing and invoices">
           <Select value={settings.currency} onValueChange={(v) => set("currency", v)}>
@@ -158,6 +261,7 @@ export function TabGeneral({ settings, onChange }: Props) {
           </Select>
         </SettingsRow>
       </SettingsSection>
+
     </div>
   );
 }
