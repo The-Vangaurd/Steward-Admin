@@ -18,16 +18,14 @@ const ORDER_TYPE_META: Record<OrderType, { icon: React.ReactNode; label: string 
 };
 
 const STATUS_STRIP: Record<string, string> = {
-  PENDING:   "border-l-[#D9B872]",
-  CONFIRMED: "border-l-[#9BAED2]",
+  NEW:       "border-l-[#D9B872]",
   PREPARING: "border-l-[#C8B6E2]",
   READY:     "border-l-[#92B9A5]",
   CANCELLED: "border-l-[#B42318]",
 };
 
 const STATUS_TINT: Record<string, string> = {
-  PENDING:   "shadow-[#D9B872]/5",
-  CONFIRMED: "shadow-[#9BAED2]/5",
+  NEW:       "shadow-[#D9B872]/5",
   PREPARING: "shadow-[#C8B6E2]/7",
   READY:     "shadow-[#92B9A5]/7",
   CANCELLED: "shadow-[#B42318]/5",
@@ -66,10 +64,10 @@ export const OrderCard = memo(function OrderCard({ order }: OrderCardProps) {
       className={cn(
         "kds-card border-l-4 flex flex-col p-4 gap-0",
         stripClass,
-        isUrgent && (order.status === "PENDING" || order.status === "CONFIRMED")
+        isUrgent && order.status === "NEW"
           ? "animate-pulse-urgent"
           : "",
-        isNew && order.status === "PENDING" ? "animate-pulse-pending" : "",
+        isNew && order.status === "NEW" ? "animate-pulse-pending" : "",
         "animate-kds-enter",
         "kds-hover-lift",
         `shadow-lg ${shadowClass}`

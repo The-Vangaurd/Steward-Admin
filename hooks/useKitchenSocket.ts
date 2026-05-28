@@ -63,9 +63,18 @@ export function useKitchenSocket({ enabled = true }: UseKitchenSocketOptions = {
           if (!current) return current;
           const idx = current.findIndex((o) => o.id === updated.id);
           if (idx === -1) {
-            scheduleInvalidate();
+            // Only invalidate if it's a non-terminal status, meaning a new active order was moved
+            if (updated.status !== "COMPLETED" && updated.status !== "CANCELLED") {
+              scheduleInvalidate();
+            }
             return current;
           }
+
+          // If the order has transitioned to COMPLETED or CANCELLED, remove it from active queue
+          if (updated.status === "COMPLETED" || updated.status === "CANCELLED") {
+            return current.filter((o) => o.id !== updated.id);
+          }
+
           const next = [...current];
           next[idx] = updated;
           return next;

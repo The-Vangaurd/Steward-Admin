@@ -11,22 +11,17 @@ import { useRequireAuth } from "@/hooks/useAuth";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":            "Overview",
-  "/kds":                  "Kitchen Display",
   "/orders":               "Orders",
   "/menu":                 "Menu",
   "/staff":                "Staff",
   "/settings":             "Settings",
-  "/kitchen":              "Order Queue",
+  "/kitchen":              "Kitchen Board",
   "/kitchen/availability": "Item Availability",
-  "/dosa-counter":         "Dosa Counter",
 };
 
-const ADMIN_ONLY_PATHS = ["/dashboard", "/kds", "/orders", "/menu", "/staff", "/settings"];
+const ADMIN_ONLY_PATHS = ["/dashboard", "/orders", "/menu", "/staff", "/settings"];
 const ALLOWED_ROLES    = ["ADMIN", "SUPER_ADMIN", "KITCHEN_STAFF", "WAITER"];
-
-// Kitchen socket is only needed on kitchen-related pages — avoid subscribing on
-// every dashboard page (staff, menu, settings, etc.)
-const KITCHEN_PATHS = ["/kitchen", "/dosa-counter", "/kds"];
+const KITCHEN_PATHS    = ["/kitchen"];
 
 function resolveTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
@@ -44,26 +39,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mounted, setMounted]         = useState(false);
 
   const isKitchenPath = KITCHEN_PATHS.some((p) => pathname.startsWith(p));
-
-  // FIX: Gate the admin socket to admin roles only. Kitchen staff don't need
-  // the admin:* / restaurant:* subscription — it would open an extra room join
-  // and fire order-created toasts on kitchen-only devices, creating noise.
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+
   useSocket({ enabled: isAdmin });
   useKitchenSocket({ enabled: isKitchenPath });
 
   useEffect(() => { setMounted(true); }, []);
 
-  // ── Silent refresh on hard reload ─────────────────────────────────────────
-  // accessToken is in-memory only (never localStorage). On hard refresh it
-  // starts null even for logged-in users. isPendingRefresh catches this state
-  // (user in localStorage, token missing). We must actively call /auth/refresh
-  // here — the axios 401 interceptor only fires when an API call returns 401,
-  // which never happens while the loading spinner blocks all requests.
-  //
-  // FIX: Increased hard timeout from 25 s → 60 s to survive Render's free-tier
-  // cold-start window (~30-60 s). With 25 s the backend was frequently still
-  // booting when the timeout fired, which cleared auth and forced a login loop.
   const [isSlowConnection, setIsSlowConnection] = useState(false);
 
   useEffect(() => {
@@ -71,9 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const baseURL = process.env.NEXT_PUBLIC_API_URL!;
 
-    // Show a "taking longer than usual" message after 5 s
     const slowTimer = setTimeout(() => setIsSlowConnection(true), 5_000);
-    // Abort the request and force logout after 60 s (full Render cold-start budget)
     const controller = new AbortController();
     const hardTimeout = setTimeout(() => controller.abort(), 60_000);
 

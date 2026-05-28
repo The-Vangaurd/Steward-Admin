@@ -9,8 +9,7 @@ import { cn } from "@/lib/utils";
 import { useKitchenUndo } from "@/hooks/useKitchenUndo";
 
 const ACTION_STYLES: Partial<Record<OrderStatus, string>> = {
-  PENDING:   "bg-[#C8B6E2] hover:bg-[#D8CAE9] active:bg-[#B7A1D6] text-[#17141E]",
-  CONFIRMED: "bg-[#A994C8] hover:bg-[#B8A6D1] active:bg-[#937AB7] text-white",
+  NEW:       "bg-[#C8B6E2] hover:bg-[#D8CAE9] active:bg-[#B7A1D6] text-[#17141E]",
   PREPARING: "bg-[#92B9A5] hover:bg-[#A4C6B5] active:bg-[#7EA891] text-[#101610]",
   READY:     "bg-[#9BAED2] hover:bg-[#AEBEDD] active:bg-[#879CC4] text-[#10141D]",
 };
@@ -24,28 +23,29 @@ export const StatusActions = memo(function StatusActions({ order }: StatusAction
   const { captureSnapshot } = useKitchenUndo();
 
   const nextStatuses = ORDER_STATUS_FLOW[order.status];
-  if (nextStatuses.length === 0) return null;
+  if (!nextStatuses || nextStatuses.length === 0) return null;
 
   const primaryNext = nextStatuses[0] as OrderStatus;
   const primaryLabel = STATUS_ACTION_LABELS[order.status];
+  
   const isPrimaryPending =
     isPending &&
     variables?.orderId === order.id &&
-    variables?.input?.status === primaryNext;
+    variables?.status === primaryNext;
   const isCancelPending =
     isPending &&
     variables?.orderId === order.id &&
-    variables?.input?.status === "CANCELLED";
+    variables?.status === "CANCELLED";
 
   // useCallback prevents new function references on every render
   const handlePrimary = useCallback(() => {
     captureSnapshot(`#${order.orderNumber} → ${primaryNext}`);
-    mutate({ orderId: order.id, input: { status: primaryNext } });
+    mutate({ orderId: order.id, status: primaryNext });
   }, [order.id, order.orderNumber, primaryNext, captureSnapshot, mutate]);
 
   const handleCancel = useCallback(() => {
     captureSnapshot(`#${order.orderNumber} → CANCELLED`);
-    mutate({ orderId: order.id, input: { status: "CANCELLED" } });
+    mutate({ orderId: order.id, status: "CANCELLED" });
   }, [order.id, order.orderNumber, captureSnapshot, mutate]);
 
   return (
@@ -71,7 +71,7 @@ export const StatusActions = memo(function StatusActions({ order }: StatusAction
         </button>
       )}
 
-      {order.status === "PENDING" && (
+      {order.status === "NEW" && (
         <button
           disabled={isPending}
           onClick={handleCancel}

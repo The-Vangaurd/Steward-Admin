@@ -1,91 +1,54 @@
 "use client";
 
-import { useState } from "react";
-import { useKitchenOrders } from "@/hooks/useKitchenOrders";
-import { OrderQueue } from "@/components/kitchen/orders/OrderQueue";
-import { cn } from "@/lib/utils";
-import type { KitchenType, OrderStatus } from "@/types";
+import { useKanbanColumns } from "@/hooks/useKitchenOrders";
+import { KanbanColumn } from "@/components/kitchen/orders/KanbanColumn";
+import { ConnectionStatus } from "@/components/kitchen/layout/ConnectionStatus";
+import { Flame, ChefHat, CheckCircle2 } from "lucide-react";
 
-import { useKitchenUndo } from "@/hooks/useKitchenUndo";
-import { UndoControls } from "@/components/kitchen/UndoControls";
-import api from "@/lib/axios";
-
-type ActiveTab = "all" | OrderStatus | KitchenType;
-
-interface Tab {
-  id: ActiveTab;
-  label: string;
-  countFilter?: (status: OrderStatus) => boolean;
-  color: string;
-  activeColor: string;
-  activeBg: string;
-}
-
-const TABS: Tab[] = [
-  { id: "all",       label: "All",       color: "text-fg-muted",   activeColor: "text-fg",      activeBg: "bg-surface-3" },
-  { id: "PENDING",   label: "Pending",   countFilter: (s) => s === "PENDING",   color: "text-warning/70",  activeColor: "text-warning",  activeBg: "bg-warning/10" },
-  { id: "CONFIRMED", label: "Confirmed", countFilter: (s) => s === "CONFIRMED", color: "text-info/70",     activeColor: "text-info",     activeBg: "bg-info/10"    },
-  { id: "PREPARING", label: "Preparing", countFilter: (s) => s === "PREPARING", color: "text-accent/70",   activeColor: "text-accent",   activeBg: "bg-accent/10"  },
-  { id: "READY",     label: "Ready",     countFilter: (s) => s === "READY",     color: "text-success/70",  activeColor: "text-success",  activeBg: "bg-success/10" },
-];
-
-export default function KitchenQueuePage() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>("all");
-  const { data: orders } = useKitchenOrders();
-  const { historyStack, canUndo, undo } = useKitchenUndo();
-
-  const getCount = (tab: Tab): number | null => {
-    if (!orders || !tab.countFilter) return null;
-    const n = orders.filter((o) => tab.countFilter!(o.status)).length;
-    return n > 0 ? n : null;
-  };
+export default function KitchenBoardPage() {
+  const { newOrders, preparingOrders, readyOrders, isLoading, isError } =
+    useKanbanColumns();
 
   return (
-    <div className="flex flex-col h-full overflow-hidden px-5 py-5 lg:px-6 lg:py-6">
-      {/* Filter tabs */}
-      <div className="flex items-center gap-1.5 pb-4 overflow-x-auto flex-shrink-0">
-        {TABS.map((tab) => {
-          const count = getCount(tab);
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap flex-shrink-0 transition-all border",
-                isActive
-                  ? cn(tab.activeBg, tab.activeColor, "border-border-strong")
-                  : cn("border-transparent", tab.color, "hover:bg-surface-2 hover:text-fg")
-              )}
-            >
-              {tab.label}
-              {count !== null && (
-                <span className={cn(
-                  "flex h-5 min-w-5 items-center justify-center rounded-full text-[11px] font-black px-1",
-                  isActive ? cn(tab.activeBg, tab.activeColor) : "bg-surface-3 text-fg-subtle"
-                )}>
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+    <div className="flex flex-col h-full overflow-hidden bg-[#0F0F0F]">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06] flex-shrink-0">
+        <h1 className="text-[13px] font-semibold text-white/60 uppercase tracking-[0.15em]">
+          Kitchen Board
+        </h1>
+        <ConnectionStatus />
       </div>
 
-      {/* Queue */}
-      <div className="flex-1 overflow-y-auto">
-        <OrderQueue filter={activeTab} />
+      {/* Kanban grid */}
+      <div className="flex-1 grid grid-cols-3 gap-0 overflow-hidden min-h-0">
+        <KanbanColumn
+          title="New"
+          icon={<Flame className="h-4 w-4 text-[#D9B872]" />}
+          orders={newOrders}
+          status="NEW"
+          isLoading={isLoading}
+          accentColor="#D9B872"
+          emptyText="No new orders"
+        />
+        <KanbanColumn
+          title="Preparing"
+          icon={<ChefHat className="h-4 w-4 text-[#C8B6E2]" />}
+          orders={preparingOrders}
+          status="PREPARING"
+          isLoading={isLoading}
+          accentColor="#C8B6E2"
+          emptyText="Nothing cooking"
+        />
+        <KanbanColumn
+          title="Ready"
+          icon={<CheckCircle2 className="h-4 w-4 text-[#92B9A5]" />}
+          orders={readyOrders}
+          status="READY"
+          isLoading={isLoading}
+          accentColor="#92B9A5"
+          emptyText="Nothing ready yet"
+        />
       </div>
-
-      <UndoControls
-        historyStack={historyStack}
-        canUndo={canUndo}
-        onUndo={() => {
-          undo(async (orderId) => {
-            await api.post(`/orders/kitchen/${orderId}/undo`);
-          });
-        }}
-      />
     </div>
   );
 }

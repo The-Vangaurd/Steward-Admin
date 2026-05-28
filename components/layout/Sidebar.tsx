@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, ShoppingCart, UtensilsCrossed, Users, MonitorPlay,
-  LogOut, X, Settings, ClipboardList, ToggleLeft, ChefHat, Wifi, WifiOff,
+  LayoutDashboard, ShoppingCart, UtensilsCrossed, Users,
+  LogOut, X, Settings, ToggleLeft, Wifi, WifiOff, Kanban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,16 +12,14 @@ import { useSettingsStore } from "@/stores/settings.store";
 
 const navAdmin = [
   { href: "/dashboard", label: "Overview",  icon: LayoutDashboard },
-  { href: "/kds",       label: "KDS",        icon: MonitorPlay },
   { href: "/orders",    label: "Orders",     icon: ShoppingCart },
   { href: "/menu",      label: "Menu",       icon: UtensilsCrossed },
   { href: "/staff",     label: "Staff",      icon: Users },
 ];
 
 const navKitchen = [
-  { href: "/kitchen",              label: "Order Queue",      icon: ClipboardList },
+  { href: "/kitchen",              label: "Kitchen Board",    icon: Kanban },
   { href: "/kitchen/availability", label: "Item Availability", icon: ToggleLeft },
-  { href: "/dosa-counter",         label: "Dosa Counter",      icon: ChefHat },
 ];
 
 interface SidebarProps { open: boolean; onClose: () => void; }
@@ -92,7 +90,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            {/* WS status indicator */}
             <span title={wsConnected ? "Live" : "Disconnected"} className="shrink-0">
               {wsConnected
                 ? <Wifi className="h-3 w-3 text-success" />
@@ -128,7 +125,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </>
           )}
 
-          {/* System */}
           {isAdmin && (
             <>
               <div className="label-xs px-2.5 mt-1 mb-1.5">System</div>

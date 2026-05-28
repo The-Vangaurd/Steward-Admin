@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Calendar, Filter, X } from "lucide-react";
+import { Filter, X } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { OrderFilters as OrderFiltersType } from "@/types";
 
-const STATUS_OPTIONS = ["PENDING","CONFIRMED","PREPARING","READY","DELIVERED","CANCELLED"] as const;
-const TYPE_OPTIONS = ["DINE_IN","TAKEAWAY","DELIVERY"];
+// History page shows all terminal + active statuses
+const STATUS_OPTIONS = ["NEW", "PREPARING", "READY", "COMPLETED", "CANCELLED"] as const;
+const TYPE_OPTIONS = ["DINE_IN", "TAKEAWAY", "DELIVERY"];
 
 interface Props { filters: OrderFiltersType; onChange: (f: OrderFiltersType) => void; }
 
@@ -47,7 +48,7 @@ export function OrderFilters({ filters, onChange }: Props) {
         <SelectContent>
           <SelectItem value="ALL">All types</SelectItem>
           {TYPE_OPTIONS.map((t) => (
-            <SelectItem key={t} value={t}>{t.replace("_"," ").toLowerCase()}</SelectItem>
+            <SelectItem key={t} value={t}>{t.replace("_", " ").toLowerCase()}</SelectItem>
           ))}
         </SelectContent>
       </Select>

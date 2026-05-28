@@ -14,15 +14,14 @@ interface OrderQueueProps {
   filter?: QueueFilter;
 }
 
-const ACTIVE_STATUSES: OrderStatus[] = ["PENDING", "CONFIRMED", "PREPARING", "READY"];
+const ACTIVE_STATUSES: OrderStatus[] = ["NEW", "PREPARING", "READY"];
 
 const STATUS_SORT_ORDER: Record<OrderStatus, number> = {
-  PENDING:   0,
-  CONFIRMED: 1,
-  PREPARING: 2,
-  READY:     3,
-  DELIVERED: 4,
-  CANCELLED: 5,
+  NEW:       0,
+  PREPARING: 1,
+  READY:     2,
+  COMPLETED: 3,
+  CANCELLED: 4,
 };
 
 function applyFilter(orders: KitchenOrder[], filter: QueueFilter): KitchenOrder[] {

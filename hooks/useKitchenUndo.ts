@@ -14,23 +14,21 @@ const MAX_UNDO_STATES = 3;
  * Valid reverse transitions for the kitchen undo flow.
  *
  * The backend state machine defines FORWARD transitions:
- *   PENDING → CONFIRMED → PREPARING → READY → DELIVERED
- *                                           → CANCELLED (from any active state)
+ *   NEW → PREPARING → READY → COMPLETED
+ *                           → CANCELLED (from any active state)
  *
  * Undo supports reversing the last kitchen action. We only allow one step back
  * and only for states that are meaningfully reversible in a kitchen context.
- * DELIVERED and CANCELLED are terminal — they cannot be undone via the UI
- * (they'd require explicit admin override).
+ * COMPLETED and CANCELLED are terminal — they cannot be undone via the UI.
  *
  * Allowed reverse map:  current → previous
  */
 const REVERSE_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus>> = {
-  CONFIRMED: "PENDING",
-  PREPARING: "CONFIRMED",
+  PREPARING: "NEW",
   READY: "PREPARING",
-  // DELIVERED → not reversible (order has left the kitchen)
+  // COMPLETED → not reversible (order has left the kitchen)
   // CANCELLED → not reversible (requires admin decision)
-  // PENDING   → no previous state
+  // NEW       → no previous state
 };
 
 /**

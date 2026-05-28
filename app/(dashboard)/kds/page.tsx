@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { ApiSuccess, Order } from "@/types";
 
-type LaneKey = "PENDING" | "PREPARING" | "READY";
+type LaneKey = "NEW" | "PREPARING" | "READY";
 const LANES: { key: LaneKey; label: string; accent: string }[] = [
-  { key: "PENDING",   label: "New",       accent: "text-warning" },
-  { key: "PREPARING", label: "Preparing", accent: "text-info" },
-  { key: "READY",     label: "Ready",     accent: "text-success" },
+  { key: "NEW",        label: "New",       accent: "text-warning" },
+  { key: "PREPARING",  label: "Preparing", accent: "text-info" },
+  { key: "READY",      label: "Ready",     accent: "text-success" },
 ];
 
 function fmtElapsed(seconds: number) {
@@ -54,9 +54,9 @@ const KdsOrderCard = memo(function KdsOrderCard({
     ? differenceInSeconds(now, new Date(order.createdAt))
     : 0;
 
-  const handleAdvancePending = useCallback(() => onAdvance(order, "CONFIRMED"), [order, onAdvance]);
+  const handleAdvancePending = useCallback(() => onAdvance(order, "PREPARING"), [order, onAdvance]);
   const handleAdvancePreparing = useCallback(() => onAdvance(order, "READY"), [order, onAdvance]);
-  const handleAdvanceReady = useCallback(() => onAdvance(order, "DELIVERED", true), [order, onAdvance]);
+  const handleAdvanceReady = useCallback(() => onAdvance(order, "COMPLETED", true), [order, onAdvance]);
   const handleCancel = useCallback(() => onCancel(order), [order, onCancel]);
 
   return (
@@ -115,7 +115,7 @@ const KdsOrderCard = memo(function KdsOrderCard({
               <X className="h-3.5 w-3.5" />
             </button>
           )}
-          {lane === "PENDING" && (
+          {lane === "NEW" && (
             <button
               onClick={handleAdvancePending}
               className="h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-info/15 border border-info/30 text-info text-[11px] font-semibold uppercase tracking-wider hover:bg-info/25 transition-colors"
@@ -161,7 +161,7 @@ export default function KdsPage() {
     queryKey: ["kds-orders"],
     queryFn: async () => {
       const { data } = await api.get<ApiSuccess<Order[]>>("/orders/admin/list", {
-        params: { limit: 100, status: "PENDING,PREPARING,READY" },
+        params: { limit: 100, status: "NEW,PREPARING,READY" },
       });
       return data.data;
     },
@@ -176,7 +176,7 @@ export default function KdsPage() {
   );
 
   const lanes = useMemo(() => {
-    const map: Record<LaneKey, any[]> = { PENDING: [], PREPARING: [], READY: [] };
+    const map: Record<LaneKey, any[]> = { NEW: [], PREPARING: [], READY: [] };
     filtered.forEach((o: any) => {
       const status = o.status as LaneKey;
       if (map[status]) map[status].push(o);
@@ -216,7 +216,7 @@ export default function KdsPage() {
             <span className="text-[13px] font-semibold text-fg">Kitchen Display</span>
           </div>
           <span className="text-[11px] text-fg-subtle num">
-            {orders.length} active · {lanes.PENDING.length} new · {lanes.PREPARING.length} prep · {lanes.READY.length} ready
+            {orders.length} active · {lanes.NEW.length} new · {lanes.PREPARING.length} prep · {lanes.READY.length} ready
           </span>
         </div>
         <div className="flex items-center gap-2">

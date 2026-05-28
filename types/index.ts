@@ -3,11 +3,10 @@
 export type UserRole = "SUPER_ADMIN" | "ADMIN" | "KITCHEN_STAFF" | "WAITER";
 
 export type OrderStatus =
-  | "PENDING"
-  | "CONFIRMED"
+  | "NEW"
   | "PREPARING"
   | "READY"
-  | "DELIVERED"
+  | "COMPLETED"
   | "CANCELLED";
 
 export type OrderType = "DINE_IN" | "TAKEAWAY" | "DELIVERY";
@@ -136,10 +135,9 @@ export interface Order {
   totalAmount: string;
   estimatedMins: number;
   createdAt: string;
-  confirmedAt: string | null;
-  preparedAt: string | null;
+  startedPreparingAt: string | null;
   readyAt: string | null;
-  deliveredAt: string | null;
+  completedAt: string | null;
   cancelledAt: string | null;
   items: OrderItem[];
 }
@@ -184,7 +182,8 @@ export interface DateRange {
   from: Date | undefined;
   to: Date | undefined;
 }
-// ─── Kitchen (merged from kitchen app) ───────────────────────────────────────
+
+// ─── Kitchen ─────────────────────────────────────────────────────────────────
 
 export interface KitchenOrderItem {
   id: string;
@@ -202,23 +201,28 @@ export interface KitchenOrder {
   tableNumber?: string | null;
   status: OrderStatus;
   createdAt: string;
+  /** Timestamp when status moved to PREPARING — used for kitchen timer */
+  startedPreparingAt?: string | null;
   notes?: string | null;
   totalAmount: number | string;
   items: KitchenOrderItem[];
 }
 
+// Active states shown on the kanban board
+export const ACTIVE_KITCHEN_STATUSES: OrderStatus[] = ["NEW", "PREPARING", "READY"];
+
+// Status flow for the kanban board
 export const ORDER_STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
-  PENDING:   ["CONFIRMED"],
-  CONFIRMED: ["PREPARING"],
+  NEW:       ["PREPARING"],
   PREPARING: ["READY"],
-  READY:     ["DELIVERED"],
-  DELIVERED: [],
+  READY:     ["COMPLETED"],
+  COMPLETED: [],
   CANCELLED: [],
 };
 
+// Button labels for each transition
 export const STATUS_ACTION_LABELS: Partial<Record<OrderStatus, string>> = {
-  PENDING:   "Accept",
-  CONFIRMED: "Start",
-  PREPARING: "Ready",
-  READY:     "Serve",
+  NEW:       "Start Preparing",
+  PREPARING: "Mark Ready",
+  READY:     "Complete",
 };
