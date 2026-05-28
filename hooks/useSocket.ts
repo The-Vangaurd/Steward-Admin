@@ -5,13 +5,18 @@
  * Joins admin:* and restaurant:* rooms; invalidates orders and menu-items.
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth.store";
 import { useBaseSocket } from "@/hooks/useBaseSocket";
 
-export function useSocket() {
+interface UseSocketOptions {
+  /** Set to false to disable subscription (e.g. for non-admin roles). Default: true */
+  enabled?: boolean;
+}
+
+export function useSocket({ enabled = true }: UseSocketOptions = {}) {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -30,15 +35,28 @@ export function useSocket() {
 
   const restaurantId = user?.restaurantId;
 
+  // FIX: Memoize the events map so useBaseSocket's stale-closure capture
+  // always holds the latest handler references. Without this, a parent
+  // re-render that causes useSocket to re-render silently uses stale handlers
+  // captured at effect-mount time.
+  const events = useMemo(() => ({
+    "order:updated": invalidateOrders,
+    "order:created": handleOrderCreated,
+    "item:availability_changed": invalidateMenuItems,
+  }), [invalidateOrders, handleOrderCreated, invalidateMenuItems]);
+
+  // FIX: Memoize the rooms array for a stable reference.
+  const rooms = useMemo(
+    () =>
+      restaurantId
+        ? [`admin:${restaurantId}`, `restaurant:${restaurantId}`]
+        : [],
+    [restaurantId]
+  );
+
   useBaseSocket({
-    enabled: !!restaurantId,
-    rooms: restaurantId
-      ? [`admin:${restaurantId}`, `restaurant:${restaurantId}`]
-      : [],
-    events: {
-      "order:updated": invalidateOrders,
-      "order:created": handleOrderCreated,
-      "item:availability_changed": invalidateMenuItems,
-    },
+    enabled: enabled && !!restaurantId,
+    rooms,
+    events,
   });
 }

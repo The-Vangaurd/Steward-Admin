@@ -45,8 +45,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isKitchenPath = KITCHEN_PATHS.some((p) => pathname.startsWith(p));
 
-  // Admin socket always active; kitchen socket only on kitchen-related pages
-  useSocket();
+  // FIX: Gate the admin socket to admin roles only. Kitchen staff don't need
+  // the admin:* / restaurant:* subscription — it would open an extra room join
+  // and fire order-created toasts on kitchen-only devices, creating noise.
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  useSocket({ enabled: isAdmin });
   useKitchenSocket({ enabled: isKitchenPath });
 
   useEffect(() => { setMounted(true); }, []);
@@ -58,10 +61,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // here — the axios 401 interceptor only fires when an API call returns 401,
   // which never happens while the loading spinner blocks all requests.
   //
-  // NOTE: Render's Starter plan cold-starts can take 30–60 s. The 25 s timeout
-  // below prevents the loading spinner from hanging indefinitely. If the backend
-  // is slow to wake up, we show a "slow connection" message instead of a blank
-  // screen, then redirect to login only after the request actually fails.
+  // FIX: Increased hard timeout from 25 s → 60 s to survive Render's free-tier
+  // cold-start window (~30-60 s). With 25 s the backend was frequently still
+  // booting when the timeout fired, which cleared auth and forced a login loop.
   const [isSlowConnection, setIsSlowConnection] = useState(false);
 
   useEffect(() => {
@@ -69,11 +71,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const baseURL = process.env.NEXT_PUBLIC_API_URL!;
 
-    // Show a "taking longer than usual" message after 8 s
-    const slowTimer = setTimeout(() => setIsSlowConnection(true), 8_000);
-    // Abort the request and force logout after 25 s (Render cold-start budget)
+    // Show a "taking longer than usual" message after 5 s
+    const slowTimer = setTimeout(() => setIsSlowConnection(true), 5_000);
+    // Abort the request and force logout after 60 s (full Render cold-start budget)
     const controller = new AbortController();
-    const hardTimeout = setTimeout(() => controller.abort(), 25_000);
+    const hardTimeout = setTimeout(() => controller.abort(), 60_000);
 
     import("axios").then(({ default: axios }) => {
       axios
@@ -122,7 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <p className="text-[11px] font-medium text-fg-subtle tracking-wide uppercase">Loading</p>
           {isSlowConnection && (
             <p className="text-[11px] text-fg-subtle mt-1 max-w-[220px] text-center">
-              Server is waking up&nbsp;— this can take up to 30&nbsp;s on the first load.
+              Server is waking up&nbsp;— this can take up to 60&nbsp;s on the first load.
             </p>
           )}
         </div>

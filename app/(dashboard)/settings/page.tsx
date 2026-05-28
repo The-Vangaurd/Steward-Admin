@@ -53,7 +53,11 @@ export default function SettingsPage() {
     }
   };
 
-  // Error state — shown if the API call fails with something other than 404
+  // FIX: Error state must be checked BEFORE the loading/draft guard below.
+  // Previously if the API errored (e.g. wrong URL, 401, 500), isError would be
+  // true but isLoading would be false and draft would still be null — causing
+  // the `isLoading || !draft` branch to render the spinner forever, never
+  // showing the user any indication that something went wrong.
   if (isError) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3">
@@ -65,11 +69,27 @@ export default function SettingsPage() {
     );
   }
 
-  // Loading state
-  if (isLoading || !draft) {
+  // Loading state — server hasn't responded yet
+  if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-5 w-5 animate-spin text-fg-subtle" />
+      </div>
+    );
+  }
+
+  // FIX: After load completes without error, draft should be initialised by the
+  // useEffect above. If somehow it isn't (e.g. a race on first mount), show an
+  // error state instead of an infinite spinner. This replaces the previous
+  // `if (isLoading || !draft)` guard which could spin forever when isLoading
+  // was false but draft was null due to an API failure not captured by isError.
+  if (!draft) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-3">
+        <p className="text-[13px] text-fg-subtle">Settings unavailable.</p>
+        <Button size="sm" variant="secondary" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
       </div>
     );
   }

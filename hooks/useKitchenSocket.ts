@@ -13,7 +13,7 @@
  * re-rendering when a single order changes.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth.store";
 import { useBaseSocket } from "@/hooks/useBaseSocket";
@@ -78,14 +78,28 @@ export function useKitchenSocket({ enabled = true }: UseKitchenSocketOptions = {
 
   const restaurantId = user?.restaurantId;
 
+  // FIX: Memoize the events map so useBaseSocket's stale-closure capture
+  // always holds the latest handler references. Without this, a parent
+  // re-render that causes useKitchenSocket to re-render silently uses the
+  // stale handlers captured at effect-mount time.
+  const events = useMemo(() => ({
+    "kitchen:new_order": handleNewOrder,
+    "order:updated": handleOrderUpdated,
+    "item:availability_changed": invalidateMenuItems,
+  }), [handleNewOrder, handleOrderUpdated, invalidateMenuItems]);
+
+  // FIX: Memoize the rooms array so it has a stable reference across renders.
+  // A new array literal on every render would not cause a reconnect (rooms is
+  // excluded from deps in useBaseSocket), but it avoids unnecessary allocations.
+  const rooms = useMemo(
+    () => (restaurantId ? [`kitchen:${restaurantId}`] : []),
+    [restaurantId]
+  );
+
   useBaseSocket({
     enabled: enabled && !!restaurantId,
-    rooms: restaurantId ? [`kitchen:${restaurantId}`] : [],
-    events: {
-      "kitchen:new_order": handleNewOrder,
-      "order:updated": handleOrderUpdated,
-      "item:availability_changed": invalidateMenuItems,
-    },
+    rooms,
+    events,
   });
 
   // Clear any pending debounce timer on unmount so we don't trigger a query
