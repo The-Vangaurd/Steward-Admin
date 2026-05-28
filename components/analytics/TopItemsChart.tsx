@@ -4,7 +4,7 @@ import { memo, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TopItem } from "@/types";
-import type { TooltipProps } from "recharts";
+
 
 const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart as any), { ssr: false }) as any;
 const Bar = dynamic(() => import("recharts").then((m) => m.Bar as any), { ssr: false }) as any;
@@ -19,7 +19,12 @@ const COLORS = ["#8B5CF6", "#7C3AED", "#A78BFA", "#C4B5FD", "#DDD6FE"];
 const GRID = "#232328";
 const AXIS = "#71717A";
 
-const CustomTooltip = memo(function CustomTooltip({ active, payload }: TooltipProps<number, string>) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number | string; payload?: { name?: string } }>;
+}
+
+const CustomTooltip = memo(function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 shadow-elevated">

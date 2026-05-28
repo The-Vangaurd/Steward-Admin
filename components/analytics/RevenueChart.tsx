@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import type { RevenueDataPoint } from "@/types";
-import type { TooltipProps } from "recharts";
+
 
 const AreaChart = dynamic(
   () => import("recharts").then((m) => m.AreaChart as any),
@@ -23,7 +23,13 @@ const GRID = "#232328";
 const AXIS = "#71717A";
 
 // Stable component reference — won't cause Tooltip to remount
-const CustomTooltip = memo(function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number | string }>;
+  label?: string;
+}
+
+const CustomTooltip = memo(function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 shadow-elevated">
