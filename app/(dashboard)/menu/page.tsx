@@ -88,7 +88,7 @@ function MenuItemsTab({ categories }: { categories: Category[] }) {
         </Button>
       </div>
 
-      <div className="rounded-lg border bg-white shadow-sm">
+      <div className="rounded-lg border bg-surface shadow-sm">
         {isLoading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
@@ -288,7 +288,7 @@ function CategoriesTab() {
         </Button>
       </div>
 
-      <div className="rounded-lg border bg-white shadow-sm">
+      <div className="rounded-lg border bg-surface shadow-sm">
         {isLoading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
