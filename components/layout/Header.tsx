@@ -72,7 +72,7 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
           <span className="text-[13px] font-semibold text-fg">Recent Orders</span>
           {orders && orders.length > 0 && (
             <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-white">
-              {orders.filter((o) => o.status === "NEW" || o.status === "PENDING").length || ""}
+              {orders.filter((o) => o.status === "NEW").length || ""}
             </span>
           )}
         </div>
@@ -417,7 +417,7 @@ export function Header({ onMenuClick, title }: HeaderProps) {
   // Use recent orders to determine if there are any NEW orders
   const { data: recentOrders } = useRecentOrders();
   const newOrderCount = recentOrders?.filter(
-    (o: any) => o.status === "NEW" || o.status === "PENDING"
+    (o: any) => o.status === "NEW"
   ).length ?? 0;
 
   return (
