@@ -1,23 +1,5 @@
 "use client";
 
-/**
- * useBaseSocket — Reusable socket connection primitive.
- *
- * Both `useSocket` (admin) and `useKitchenSocket` (kitchen) are built on top
- * of this hook. It handles:
- *   • acquireSocket / releaseSocket reference counting
- *   • connect / disconnect lifecycle
- *   • room join on connect (or immediately if already connected)
- *   • settingsStore.setWsConnected tracking
- *   • arbitrary event-handler registration / cleanup
- *
- * IMPORTANT FOR CALLERS: `rooms`, `events`, `onConnected`, `onDisconnected`,
- * and `onConnectError` are intentionally excluded from the useEffect deps array
- * (suppressed with eslint-disable) to avoid reconnect loops on every render.
- * You MUST memoize any of these values with useMemo / useCallback at the
- * call site — otherwise stale closures will be used for event handlers.
- */
-
 import { useEffect } from "react";
 import { acquireSocket, releaseSocket, updateSocketAuth } from "@/lib/sockets";
 import { useAuthStore } from "@/stores/auth.store";
@@ -31,7 +13,6 @@ interface UseBaseSocketOptions {
   onConnected?: () => void;
   onDisconnected?: () => void;
   onConnectError?: (err: Error) => void;
-  /** Set to false to skip connecting (e.g. waiting on auth or on non-kitchen pages). Default: true */
   enabled?: boolean;
 }
 
@@ -51,6 +32,9 @@ export function useBaseSocket({
     const socket = acquireSocket(accessToken);
     updateSocketAuth(accessToken);
 
+    // Track that a socket consumer is active — prevents false disconnects
+    settingsStore.incrementSocketCount();
+
     const handleConnect = () => {
       if ((socket as any).data) {
         (socket as any).data.tokenRetryCount = 0;
@@ -64,7 +48,13 @@ export function useBaseSocket({
       onConnected?.();
     };
 
-    const handleDisconnect = () => {
+    const handleDisconnect = (reason: string) => {
+      // Ignore transport-level disconnects caused by page navigation or hot reload
+      // (socket.io fires 'disconnect' with reason 'transport close' on HMR)
+      if (reason === "io client disconnect") {
+        // This was intentional (we called socket.disconnect()), don't mark as disconnected
+        return;
+      }
       settingsStore.setWsConnected(false);
       onDisconnected?.();
     };
@@ -116,7 +106,8 @@ export function useBaseSocket({
         socket.emit("leave_room", room);
       }
 
-      settingsStore.setWsConnected(false);
+      // Decrement count — only marks wsConnected=false if count reaches 0
+      settingsStore.decrementSocketCount();
       releaseSocket();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

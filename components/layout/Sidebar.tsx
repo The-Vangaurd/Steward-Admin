@@ -51,7 +51,7 @@ function NavLink({
         href={href}
         onClick={onClose}
         className={cn(
-          "group relative flex items-center gap-2.5 h-9 px-2.5 rounded-lg text-[13px] font-medium transition-all duration-150",
+          "group relative flex items-center gap-2.5 h-9 px-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 active:scale-[0.97] active:duration-75",
           active
             ? "bg-surface-3 text-fg border border-border-strong shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
             : "text-fg-muted hover:bg-surface-2 hover:text-fg border border-transparent"
@@ -164,7 +164,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
             <button
               onClick={onClose}
-              className="lg:hidden h-7 w-7 grid place-items-center rounded-md text-fg-muted hover:bg-surface-2 transition-colors"
+              className="lg:hidden h-9 w-9 grid place-items-center rounded-md text-fg-muted hover:bg-surface-2 transition-colors touch-target"
               aria-label="Close sidebar"
             >
               <X className="h-4 w-4" />
@@ -208,7 +208,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     href="/settings"
                     onClick={onClose}
                     className={cn(
-                      "group relative flex items-center gap-2.5 h-9 px-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 border",
+                      "group relative flex items-center gap-2.5 h-9 px-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 active:scale-[0.97] active:duration-75 border",
                       settingsActive
                         ? "bg-surface-3 text-fg border-border-strong shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                         : "text-fg-muted hover:bg-surface-2 hover:text-fg border-transparent"

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import { useAuth } from "@/hooks/useAuth";
+import { useRestaurantSettings } from "@/hooks/useRestaurantSettings";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -151,9 +152,103 @@ const QUICK_LINKS = [
   { label: "Menu", href: "/menu", icon: Package },
 ];
 
+function QuickLinks({ onClose }: { onClose: () => void }) {
+  return (
+    <>
+      <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">
+        Quick Navigation
+      </p>
+      <ul className="space-y-0.5">
+        {QUICK_LINKS.map((link) => (
+          <li key={link.href}>
+            <a
+              href={link.href}
+              onClick={onClose}
+              className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-surface-2 transition-colors"
+            >
+              <div className="grid h-7 w-7 place-items-center rounded-md bg-surface-2 border border-border">
+                <link.icon className="h-3.5 w-3.5 text-fg-muted" />
+              </div>
+              <span className="text-[13px] font-medium text-fg">{link.label}</span>
+              <ChevronRight className="ml-auto h-3.5 w-3.5 text-fg-subtle" />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function SearchResults({ query, onClose }: { query: string; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["order-search", query],
+    queryFn: async () => {
+      const { data } = await api.get<ApiSuccess<Order[]>>("/orders/search", {
+        params: { q: query, limit: 8 },
+      });
+      return data.data ?? [];
+    },
+    enabled: query.length >= 2,
+    staleTime: 10_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8 gap-2 text-fg-subtle">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="text-[12px]">Searching…</span>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-8">
+        <Search className="h-8 w-8 text-fg-subtle/40" />
+        <p className="text-[13px] font-medium text-fg-muted">No results for "{query}"</p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="space-y-0.5 p-1">
+      {data.map((order: any) => (
+        <li key={order.id}>
+          <a
+            href={`/orders?highlight=${order.id}`}
+            onClick={onClose}
+            className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-surface-2 transition-colors"
+          >
+            <div className="grid h-7 w-7 place-items-center rounded-md bg-surface-2 border border-border">
+              <ShoppingBag className="h-3.5 w-3.5 text-fg-muted" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold text-fg font-mono">#{order.orderNumber}</p>
+              <p className="text-[11px] text-fg-muted truncate">
+                {order.customerName ?? "Guest"} · {order.status}
+              </p>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function SearchModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 200);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [query]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -193,7 +288,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
           />
           {query && (
             <button
-              onClick={() => setQuery("")}
+              onClick={() => { setQuery(""); setDebouncedQuery(""); }}
               className="grid h-5 w-5 place-items-center rounded-md text-fg-subtle hover:text-fg"
             >
               <X className="h-3.5 w-3.5" />
@@ -207,36 +302,11 @@ function SearchModal({ onClose }: { onClose: () => void }) {
         {/* Results */}
         <div className="p-2">
           {!query ? (
-            <>
-              <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">
-                Quick Navigation
-              </p>
-              <ul className="space-y-0.5">
-                {QUICK_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <a
-                      href={link.href}
-                      onClick={onClose}
-                      className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-surface-2 transition-colors"
-                    >
-                      <div className="grid h-7 w-7 place-items-center rounded-md bg-surface-2 border border-border">
-                        <link.icon className="h-3.5 w-3.5 text-fg-muted" />
-                      </div>
-                      <span className="text-[13px] font-medium text-fg">{link.label}</span>
-                      <ChevronRight className="ml-auto h-3.5 w-3.5 text-fg-subtle" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </>
+            <QuickLinks onClose={onClose} />
+          ) : query.length < 2 ? (
+            <p className="px-4 py-8 text-center text-[12px] text-fg-subtle">Type at least 2 characters…</p>
           ) : (
-            <div className="flex flex-col items-center gap-2 py-8">
-              <Search className="h-8 w-8 text-fg-subtle/40" />
-              <p className="text-[13px] font-medium text-fg-muted">Search coming soon</p>
-              <p className="text-[11px] text-fg-subtle text-center max-w-[240px]">
-                Full search is under development. Use the quick links above to navigate.
-              </p>
-            </div>
+            <SearchResults query={debouncedQuery} onClose={onClose} />
           )}
         </div>
 
@@ -303,6 +373,10 @@ function UserMenu({ initials, onClose }: { initials: string; onClose: () => void
 
 export function Header({ onMenuClick, title }: HeaderProps) {
   const user = useAuthStore((s) => s.user);
+  const { data: settings } = useRestaurantSettings();
+  const restaurantName = user?.restaurantId
+    ? ((settings as any)?.restaurantName ?? settings?.name ?? "Steward")
+    : "Steward";
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
     : "";
@@ -357,7 +431,7 @@ export function Header({ onMenuClick, title }: HeaderProps) {
           >
             <Menu className="h-4 w-4" />
           </button>
-          <span className="text-fg-subtle text-[12px]">SpiceOS</span>
+          <span className="text-fg-subtle text-[12px]">{restaurantName}</span>
           <span className="text-fg-subtle text-[12px]">/</span>
           <h1 className="text-[13px] font-semibold text-fg tracking-tight">{title}</h1>
         </div>

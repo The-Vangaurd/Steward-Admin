@@ -57,7 +57,7 @@ export const StatusActions = memo(function StatusActions({ order }: StatusAction
           className={cn(
             "flex-1 touch-target flex items-center justify-center gap-2",
             "rounded-xl text-sm font-bold tracking-wide uppercase",
-            "transition-all duration-150 ease-out",
+            "transition-all duration-150 ease-out active:scale-[0.96] active:duration-75",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
             ACTION_STYLES[order.status] ?? "bg-white/10 hover:bg-white/15 text-white"
@@ -78,7 +78,7 @@ export const StatusActions = memo(function StatusActions({ order }: StatusAction
           className={cn(
             "touch-target flex items-center justify-center px-4",
             "rounded-xl text-sm font-semibold",
-            "bg-[#D18B8B]/10 hover:bg-[#D18B8B]/16 active:bg-[#D18B8B]/22",
+            "bg-[#D18B8B]/10 hover:bg-[#D18B8B]/16 active:bg-[#D18B8B]/22 active:scale-[0.96] active:duration-75",
             "text-[#D18B8B] border border-[#D18B8B]/20",
             "transition-all duration-150 ease-out",
             "disabled:opacity-50 disabled:cursor-not-allowed",

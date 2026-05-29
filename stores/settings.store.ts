@@ -5,20 +5,11 @@ import { useSyncExternalStore } from "react";
 interface SettingsState {
   soundEnabled: boolean;
   wsConnected: boolean;
+  /** Number of active socket hook instances. Prevents false disconnects. */
+  activeSocketCount: number;
 }
 
 const SOUND_KEY = "steward-sound-enabled";
-
-// ── SSR-safe initialisation ───────────────────────────────────────────────────
-// Do NOT read localStorage at module evaluation time:
-//   1. The module-level `let state` is a singleton shared across SSR requests,
-//      so one user's preference could bleed into another user's server render.
-//   2. `localStorage` is not available in the Node.js SSR environment even
-//      with a `typeof window` guard when the module is evaluated server-side.
-//
-// Instead, we initialise with a safe server-side default and hydrate from
-// localStorage lazily inside `getSnapshot` (client-only) and `getServerSnapshot`
-// (server — always returns the default, preventing hydration mismatches).
 
 function readSoundEnabled(): boolean {
   if (typeof window === "undefined") return true;
@@ -29,13 +20,12 @@ function readSoundEnabled(): boolean {
   }
 }
 
-// State is populated on first client-side read via getSnapshot.
 let state: SettingsState = {
-  soundEnabled: true, // safe default; overwritten on first client render
+  soundEnabled: true,
   wsConnected: false,
+  activeSocketCount: 0,
 };
 
-// Track whether we have hydrated from localStorage yet.
 let hydrated = false;
 
 function getHydratedState(): SettingsState {
@@ -57,14 +47,15 @@ export const settingsStore = {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
+
   getSnapshot(): SettingsState {
     return getHydratedState();
   },
-  // Server snapshot always returns the safe default to avoid hydration
-  // mismatches (server can't read localStorage).
+
   getServerSnapshot(): SettingsState {
-    return { soundEnabled: true, wsConnected: false };
+    return { soundEnabled: true, wsConnected: false, activeSocketCount: 0 };
   },
+
   toggleSound() {
     const current = getHydratedState();
     state = { ...current, soundEnabled: !current.soundEnabled };
@@ -77,11 +68,46 @@ export const settingsStore = {
     }
     emit();
   },
+
+  /**
+   * setWsConnected: only marks disconnected when there are NO active socket hooks.
+   * This prevents false disconnects when one hook unmounts while another is still active
+   * (e.g. navigating between kitchen and settings pages).
+   */
   setWsConnected(wsConnected: boolean) {
     const current = getHydratedState();
-    if (current.wsConnected === wsConnected) return; // no-op if unchanged
+    // When disconnecting, only actually disconnect if no sockets are active
+    if (!wsConnected && current.activeSocketCount > 1) return;
+    if (current.wsConnected === wsConnected) return;
     state = { ...current, wsConnected };
     emit();
+  },
+
+  /**
+   * Call when a socket hook mounts and acquires a connection.
+   * Returns the new count.
+   */
+  incrementSocketCount(): number {
+    const current = getHydratedState();
+    state = { ...current, activeSocketCount: current.activeSocketCount + 1 };
+    emit();
+    return state.activeSocketCount;
+  },
+
+  /**
+   * Call when a socket hook unmounts and releases its connection.
+   * Returns the new count.
+   */
+  decrementSocketCount(): number {
+    const current = getHydratedState();
+    const newCount = Math.max(0, current.activeSocketCount - 1);
+    state = { ...current, activeSocketCount: newCount };
+    // If count reaches 0 and we were connected, mark disconnected
+    if (newCount === 0 && current.wsConnected) {
+      state = { ...state, wsConnected: false };
+    }
+    emit();
+    return state.activeSocketCount;
   },
 };
 
@@ -96,5 +122,7 @@ export function useSettingsStore() {
     ...snapshot,
     toggleSound: settingsStore.toggleSound,
     setWsConnected: settingsStore.setWsConnected,
+    incrementSocketCount: settingsStore.incrementSocketCount,
+    decrementSocketCount: settingsStore.decrementSocketCount,
   };
 }

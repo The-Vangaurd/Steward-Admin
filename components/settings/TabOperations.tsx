@@ -6,6 +6,7 @@ import { SettingsSection, SettingsRow } from "./SettingsShell";
 import type { RestaurantSettings, DayOfWeek } from "@/types/settings";
 import { DAY_LABELS } from "@/types/settings";
 import { cn } from "@/lib/utils";
+import { ChevronRight } from "lucide-react";
 
 interface Props {
   settings: RestaurantSettings;
@@ -155,6 +156,26 @@ export function TabOperations({ settings, onChange }: Props) {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Shifts management */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="label-xs">Shift Management</div>
+          <a
+            href="/settings?tab=shifts"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-accent hover:text-accent/80 transition-colors"
+          >
+            Manage shifts
+            <ChevronRight className="h-3 w-3" />
+          </a>
+        </div>
+        <div className="rounded-xl border border-border bg-surface p-4">
+          <p className="text-[12px] text-fg-subtle">
+            Define weekly shifts to track kitchen throughput and staff scheduling.
+            Shifts appear on the kitchen board as contextual labels.
+          </p>
         </div>
       </div>
     </div>
