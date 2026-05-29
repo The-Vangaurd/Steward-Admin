@@ -2,8 +2,6 @@ import { create } from 'zustand';
 import type { User } from '@/types';
 import { USER_STORAGE_KEY, RESTAURANT_STORAGE_KEY } from '@/constants/auth';
 
-const REFRESH_TOKEN_STORAGE_KEY = 'steward_refresh_token';
-
 // ── Security note ──────────────────────────────────────────────────────────────
 //
 // accessToken  → in-memory ONLY (never localStorage/sessionStorage).
@@ -35,15 +33,11 @@ interface AuthStore {
   user: User | null;
   /** Non-sensitive restaurant info — persisted alongside user */
   restaurant: Restaurant | null;
-  /** OAuth refresh token fallback — persisted in localStorage (since no cookie is set via hash) */
-  refreshToken: string | null;
 
   /** Called after a successful email/password login or silent refresh. */
   setAuth: (token: string, user: User, restaurant?: Restaurant | null) => void;
   /** Called by the silent-refresh interceptor — only updates the token. */
   setAccessToken: (token: string) => void;
-  /** Stores the OAuth refresh token from the hash fragment. */
-  setRefreshToken: (token: string | null) => void;
   /** Hard logout — clears all client state and storage. */
   clearAuth: () => void;
 }
@@ -84,7 +78,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
   // accessToken intentionally NOT seeded from storage.
   // It must come from the silent refresh flow so we always hold a fresh JWT.
   accessToken: null,
-  refreshToken: read<string>(REFRESH_TOKEN_STORAGE_KEY),
   user: read<User>(USER_STORAGE_KEY),
   restaurant: read<Restaurant>(RESTAURANT_STORAGE_KEY),
 
@@ -102,16 +95,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ accessToken: token });
   },
 
-  setRefreshToken: (token) => {
-    if (token) write(REFRESH_TOKEN_STORAGE_KEY, token);
-    else remove(REFRESH_TOKEN_STORAGE_KEY);
-    set({ refreshToken: token });
-  },
-
   clearAuth: () => {
     remove(USER_STORAGE_KEY);
     remove(RESTAURANT_STORAGE_KEY);
-    remove(REFRESH_TOKEN_STORAGE_KEY);
-    set({ accessToken: null, refreshToken: null, user: null, restaurant: null });
+    set({ accessToken: null, user: null, restaurant: null });
   },
 }));

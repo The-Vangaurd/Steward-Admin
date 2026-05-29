@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -48,6 +48,7 @@ interface RestaurantSetupResponse {
 
 export default function RestaurantSetupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setAuth, accessToken: existingToken } = useAuthStore();
 
   const [serverError, setServerError] = useState<string | null>(null);
@@ -55,37 +56,46 @@ export default function RestaurantSetupPage() {
   const [prefillEmail, setPrefillEmail] = useState<string>('');
   const [prefillName, setPrefillName] = useState<string>('');
 
-  // Read tokens from hash fragment (set by backend OAuth callback with intent=register)
+  // Exchange OAuth code for accessToken
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const hash = window.location.hash;
-    if (!hash) return;
 
-    const params = new URLSearchParams(hash.slice(1));
-    const token = params.get('access_token');
+    const code = searchParams.get('code');
+    if (!code) return;
 
-    if (!token) return;
+    const handleExchange = async () => {
+      try {
+        const { data } = await api.post<ApiSuccess<{ accessToken: string; user: any }>>(
+          '/auth/exchange',
+          { code }
+        );
 
-    // Clear tokens from URL immediately
-    history.replaceState(null, '', window.location.pathname);
+        const token = data.data.accessToken;
+        setOauthToken(token);
 
-    try {
-      const payloadBase64 = token.split('.')[1];
-      const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+        const payloadBase64 = token.split('.')[1];
+        const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
 
-      setOauthToken(token);
-      setPrefillEmail(payload.email ?? '');
-      // Pre-fill name from JWT if available
-      if (payload.firstName) {
-        const fullName = [payload.firstName, payload.lastName].filter(Boolean).join(' ');
-        setPrefillName(fullName);
+        setPrefillEmail(payload.email ?? '');
+        if (payload.firstName) {
+          const fullName = [payload.firstName, payload.lastName].filter(Boolean).join(' ');
+          setPrefillName(fullName);
+        }
+
+        // Scrub code from the browser URL immediately
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('code');
+        history.replaceState(null, '', newUrl.toString());
+
+      } catch (err: any) {
+        toast.error('Session expired — please try again');
+        router.replace('/register');
       }
-    } catch {
-      toast.error('Session expired — please try again');
-      router.replace('/register');
-    }
+    };
+
+    handleExchange();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   // If someone lands here without an OAuth token and without being logged in, redirect away
   useEffect(() => {

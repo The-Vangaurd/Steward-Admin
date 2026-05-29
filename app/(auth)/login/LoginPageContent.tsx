@@ -160,7 +160,7 @@ export default function LoginPage() {
     }
   }, [accessToken, user, router, searchParams]);
 
-  // Handle OAuth callback — read tokens from hash fragment set by backend
+  // Handle OAuth callback — read code from search query parameters and exchange it
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -169,47 +169,41 @@ export default function LoginPage() {
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('error');
       history.replaceState(null, '', newUrl.toString());
+      return;
     }
 
-    const hash = window.location.hash;
-    if (!hash) return;
+    const code = searchParams.get('code');
+    if (!code) return;
 
-    const params = new URLSearchParams(hash.slice(1)); // strip leading '#'
-    const oauthAccessToken = params.get('access_token');
-    const oauthRefreshToken = params.get('refresh_token');
+    const handleExchange = async () => {
+      try {
+        const { data } = await api.post<ApiSuccess<{ accessToken: string; user: import('@/types').User }>>(
+          '/auth/exchange',
+          { code }
+        );
 
-    if (!oauthAccessToken) return;
+        setAuth(data.data.accessToken, data.data.user);
+        toast.success('Signed in with Google');
 
-    // Scrub tokens from the browser URL immediately — they must not appear in history
-    history.replaceState(null, '', window.location.pathname + window.location.search);
+        // Scrub code from the browser URL immediately
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('code');
+        history.replaceState(null, '', newUrl.toString());
 
-    try {
-      // Decode the JWT payload to extract user info (no signature verification needed here)
-      const payloadBase64 = oauthAccessToken.split('.')[1];
-      const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
-
-      const oauthUser: import('@/types').User = {
-        id: payload.id,
-        email: payload.email,
-        firstName: payload.firstName ?? '',
-        lastName: payload.lastName ?? '',
-        role: payload.role,
-        restaurantId: payload.restaurantId ?? null,
-      };
-
-      setAuth(oauthAccessToken, oauthUser);
-      if (oauthRefreshToken) {
-        useAuthStore.getState().setRefreshToken(oauthRefreshToken);
+        const next = searchParams.get('next');
+        router.replace(next ? decodeURIComponent(next) : getRedirectPath(data.data.user.role));
+      } catch (err: any) {
+        toast.error('Google sign-in verification failed');
+        // Scrub code from URL on failure too
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('code');
+        history.replaceState(null, '', newUrl.toString());
       }
-      toast.success('Signed in with Google');
+    };
 
-      const next = searchParams.get('next');
-      router.replace(next ? decodeURIComponent(next) : getRedirectPath(oauthUser.role));
-    } catch {
-      toast.error('Google sign-in failed — could not parse token');
-    }
+    handleExchange();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   const handleAdminSubmit = async (values: AdminLoginValues) => {
     setAdminError(null);
