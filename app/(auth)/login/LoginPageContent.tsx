@@ -160,6 +160,46 @@ export default function LoginPage() {
     }
   }, [accessToken, user, router, searchParams]);
 
+  // Handle OAuth callback — read tokens from hash fragment set by backend
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    const params = new URLSearchParams(hash.slice(1)); // strip leading '#'
+    const oauthAccessToken = params.get('access_token');
+    const oauthRefreshToken = params.get('refresh_token');
+
+    if (!oauthAccessToken) return;
+
+    // Scrub tokens from the browser URL immediately — they must not appear in history
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+
+    try {
+      // Decode the JWT payload to extract user info (no signature verification needed here)
+      const payloadBase64 = oauthAccessToken.split('.')[1];
+      const payload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+
+      const oauthUser: import('@/types').User = {
+        id: payload.id,
+        email: payload.email,
+        firstName: payload.firstName ?? '',
+        lastName: payload.lastName ?? '',
+        role: payload.role,
+        restaurantId: payload.restaurantId ?? null,
+      };
+
+      setAuth(oauthAccessToken, oauthUser);
+      toast.success('Signed in with Google');
+
+      const next = searchParams.get('next');
+      router.replace(next ? decodeURIComponent(next) : getRedirectPath(oauthUser.role));
+    } catch {
+      toast.error('Google sign-in failed — could not parse token');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleAdminSubmit = async (values: AdminLoginValues) => {
     setAdminError(null);
     try {
