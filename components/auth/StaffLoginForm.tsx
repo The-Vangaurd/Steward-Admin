@@ -162,3 +162,71 @@ export function StaffLoginForm({ onSubmit, serverError }: StaffLoginFormProps) {
           className="uppercase tracking-widest font-mono text-center text-[15px]"
           {...register('restaurantCode')}
         />
+        {errors.restaurantCode && (
+          <p className="text-[11px] text-danger mt-1">{errors.restaurantCode.message}</p>
+        )}
+        <p className="text-[11px] text-fg-subtle">
+          Ask your manager for the restaurant code shown on your setup card.
+        </p>
+      </div>
+
+      {/* PIN */}
+      <div className="space-y-2">
+        <Label className="text-[12px] font-medium text-fg-muted block text-center">
+          Enter your 4-digit PIN
+        </Label>
+        {/* Hidden input for form validation */}
+        <input type="hidden" {...register('pin')} />
+        <PinPad value={pinValue} onChange={handlePinChange} disabled={isSubmitting} />
+        {errors.pin && (
+          <p className="text-[11px] text-danger mt-1 text-center">{errors.pin.message}</p>
+        )}
+      </div>
+
+      {/* Server error */}
+      {serverError && (
+        <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-[12px] text-danger text-center">
+          {serverError}
+        </div>
+      )}
+
+      {/* Submit */}
+      <Button
+        type="submit"
+        size="lg"
+        disabled={isSubmitting || pinValue.length < 4}
+        className="w-full"
+      >
+        {isSubmitting ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <>
+            Clock in <ArrowRight className="h-3.5 w-3.5" />
+          </>
+        )}
+      </Button>
+
+      {/* Divider */}
+      <div className="relative flex items-center gap-3 my-1">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-[11px] text-fg-subtle font-medium uppercase tracking-widest">or</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
+      {/* Google Sign In */}
+      <button
+        type="button"
+        disabled={isSubmitting || googleLoading}
+        onClick={handleGoogleSignIn}
+        className="w-full flex items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-2.5 text-[13px] font-medium text-fg hover:bg-surface-2 hover:border-border-strong transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {googleLoading ? (
+          <span className="h-4 w-4 rounded-full border-2 border-fg-subtle/30 border-t-fg-subtle animate-spin" />
+        ) : (
+          GOOGLE_ICON
+        )}
+        Continue with Google
+      </button>
+    </form>
+  );
+}
