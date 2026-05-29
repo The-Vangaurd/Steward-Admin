@@ -76,9 +76,10 @@ api.interceptors.response.use(
       error.config._retry = true;
 
       try {
+        const refreshTokenFallback = getAuthStore().getState().refreshToken;
         const { data } = await axios.post(
           `${baseURL}/auth/refresh`,
-          {},
+          refreshTokenFallback ? { refreshToken: refreshTokenFallback } : {},
           { withCredentials: true },
         );
 

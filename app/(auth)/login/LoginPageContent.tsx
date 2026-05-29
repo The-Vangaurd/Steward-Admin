@@ -163,6 +163,14 @@ export default function LoginPage() {
   // Handle OAuth callback — read tokens from hash fragment set by backend
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    if (searchParams.get('error') === 'oauth_failed') {
+      toast.error('Google sign-in failed or was cancelled');
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('error');
+      history.replaceState(null, '', newUrl.toString());
+    }
+
     const hash = window.location.hash;
     if (!hash) return;
 
@@ -190,6 +198,9 @@ export default function LoginPage() {
       };
 
       setAuth(oauthAccessToken, oauthUser);
+      if (oauthRefreshToken) {
+        useAuthStore.getState().setRefreshToken(oauthRefreshToken);
+      }
       toast.success('Signed in with Google');
 
       const next = searchParams.get('next');
