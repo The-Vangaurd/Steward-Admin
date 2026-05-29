@@ -67,6 +67,7 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
   const {
     register,
@@ -87,18 +88,24 @@ export default function RegisterPage() {
   const onSubmit = async (values: RegisterForm) => {
     setServerError(null);
     try {
-      const { data } = await api.post<ApiSuccess<OwnerRegisterResponse>>('/auth/owner-register', {
+      const { data } = await api.post<ApiSuccess<OwnerRegisterResponse & { emailVerified?: boolean }>>('/auth/owner-register', {
         ...values,
         phone: '',
       });
 
+      if (data.data.emailVerified === false) {
+        setRegisteredEmail(values.email);
+        toast.success('Verification email sent! Please check your inbox.');
+        return;
+      }
+
       setAuth(
-        data.data.accessToken,
+        data.data.accessToken!,
         { ...data.data.user, restaurantId: data.data.user.restaurantId } as any,
-        data.data.restaurant,
+        data.data.restaurant!,
       );
 
-      toast.success(`Welcome! "${data.data.restaurant.name}" is ready.`);
+      toast.success(`Welcome! "${data.data.restaurant!.name}" is ready.`);
       router.push('/dashboard');
     } catch (err: any) {
       setServerError(
@@ -108,6 +115,40 @@ export default function RegisterPage() {
       );
     }
   };
+
+  if (registeredEmail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg text-fg px-4">
+        <div className="w-full max-w-[400px] rounded-2xl border border-border bg-surface p-8 shadow-sm space-y-6 text-center">
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="h-12 w-12 rounded-full bg-accent/10 grid place-items-center">
+              <Store className="h-6 w-6 text-accent animate-pulse" />
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight">Verify your email</h1>
+            <p className="text-[13px] text-fg-muted leading-relaxed">
+              We've sent a verification link to <span className="text-fg font-medium font-mono">{registeredEmail}</span>.
+            </p>
+            <p className="text-[12px] text-fg-subtle leading-relaxed">
+              Please click the link in the email to activate your account. Once verified, you'll be able to sign in.
+            </p>
+            <div className="w-full pt-4 space-y-3">
+              <Link href="/login" className="block w-full">
+                <Button size="lg" className="w-full cursor-pointer">
+                  Go to Sign In <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+              <button
+                onClick={() => setRegisteredEmail(null)}
+                className="text-[12px] text-fg-muted hover:text-fg underline underline-offset-2 transition-colors cursor-pointer"
+              >
+                Back to sign up
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2 bg-bg text-fg">
