@@ -58,6 +58,7 @@
 }
 
 @layer utilities {
+  /* ─── Typography ─────────────────────────────────────────────────────────── */
   .label-xs {
     @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-muted;
   }
@@ -66,16 +67,121 @@
   }
   .hairline { @apply border border-border; }
   .num { font-variant-numeric: tabular-nums; }
-  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: 3px; }
+
+  /* ─── Scrollbars ─────────────────────────────────────────────────────────── */
+  .scrollbar-thin::-webkit-scrollbar { width: 5px; height: 5px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border-strong));
+    border-radius: 10px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--fg-subtle));
+  }
+
+  /* ─── Glass effects ──────────────────────────────────────────────────────── */
+  .glass-panel {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glass-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* ─── Premium card with inner highlight ─────────────────────────────────── */
+  .card-premium {
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  .card-premium:hover {
+    border-color: hsl(var(--border-strong));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  /* ─── Gradient text ──────────────────────────────────────────────────────── */
+  .text-gradient-accent {
+    background: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--info)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ─── Focus ring ─────────────────────────────────────────────────────────── */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-1 focus-visible:ring-offset-bg;
+  }
+
+  /* ─── Transition helpers ─────────────────────────────────────────────────── */
+  .transition-standard {
+    transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  /* ─── Badge dot ──────────────────────────────────────────────────────────── */
+  .badge-dot {
+    @apply inline-flex items-center gap-1.5;
+  }
+  .badge-dot::before {
+    content: '';
+    @apply inline-block h-1.5 w-1.5 rounded-full bg-current;
+  }
+
+  /* ─── Sidebar active indicator ───────────────────────────────────────────── */
+  .nav-active-glow {
+    box-shadow: 0 0 0 1px hsl(var(--accent) / 0.15), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  /* ─── Misc ───────────────────────────────────────────────────────────────── */
+  .text-2xs { font-size: 0.625rem; line-height: 0.875rem; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-/* Subtle pulse for live indicator */
+/* ─── Animations ─────────────────────────────────────────────────────────────── */
+
+/* Live pulse for WS indicator */
 @keyframes live-pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
 .live-dot { animation: live-pulse 2s ease-in-out infinite; }
 
-/* ─── Kitchen Display System (KDS) styles ───────────────────────────────────
-   Used by admin/components/kitchen/** components (merged from kitchen app).    */
+/* Notification badge pulse */
+@keyframes badge-ping {
+  0% { transform: scale(1); opacity: 1; }
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+.badge-ping { animation: badge-ping 1.5s cubic-bezier(0,0,0.2,1) infinite; }
+
+/* Subtle shimmer for skeleton loading */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* Slide-in for panels */
+@keyframes slide-in-right {
+  from { transform: translateX(8px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-right { animation: slide-in-right 0.2s ease-out both; }
+
+/* ─── Kitchen Display System (KDS) styles ──────────────────────────────────── */
 
 @layer utilities {
   .kds-card {
@@ -138,8 +244,6 @@
   .animate-kds-slide   { animation: kds-slide-down 0.2s ease-out both; }
   .animate-pulse-urgent  { animation: kds-pulse-urgent 2s ease-in-out infinite; }
   .animate-pulse-pending { animation: kds-pulse-pending 2.5s ease-in-out infinite; }
-
-  .text-2xs { font-size: 0.625rem; line-height: 0.875rem; }
 }
 
 .kds-skeleton {
