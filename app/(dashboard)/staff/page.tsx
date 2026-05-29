@@ -6,8 +6,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Plus, RefreshCw, Pencil, UserX, Users, Loader2, Copy, Check,
+  Plus, RefreshCw, Pencil, UserX, Users, Loader2, Copy, Check, ClipboardList,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
@@ -549,6 +550,13 @@ export default function StaffPage() {
                     </TableCell>
                     <TableCell className="py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Link
+                          href={`/audit?actorId=${member.id}&actorEmail=${encodeURIComponent(member.email)}`}
+                          title="View activity"
+                          className="inline-grid h-7 w-7 place-items-center rounded-md border border-border text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors"
+                        >
+                          <ClipboardList className="h-3.5 w-3.5" />
+                        </Link>
                         <button
                           onClick={() => setEditMember(member)}
                           className="inline-grid h-7 w-7 place-items-center rounded-md border border-border text-fg-muted hover:bg-surface-3 hover:text-fg transition-colors"

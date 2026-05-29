@@ -72,7 +72,7 @@ export function partitionDosaQueue(orders: KitchenOrder[]): DosaQueuePartition {
   for (const order of dosaOrders) {
     const qty = dosaQuantityForOrder(order);
 
-    if (cumulativeQty < CURRENT_DOSA_CAP) {
+    if (cumulativeQty + qty <= CURRENT_DOSA_CAP) {
       current.push(order);
       cumulativeQty += qty;
     } else {

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, Users,
   LogOut, X, Settings, ToggleLeft, Wifi, WifiOff, Kanban,
-  MonitorPlay, Soup,
+  Soup, ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,17 +14,17 @@ import { useSettingsStore } from "@/stores/settings.store";
 // ─── Nav definitions ──────────────────────────────────────────────────────────
 
 const navAdmin = [
-  { href: "/dashboard", label: "Overview",  icon: LayoutDashboard },
-  { href: "/orders",    label: "Orders",    icon: ShoppingCart },
-  { href: "/menu",      label: "Menu",      icon: UtensilsCrossed },
-  { href: "/staff",     label: "Staff",     icon: Users },
+  { href: "/dashboard", label: "Overview",   icon: LayoutDashboard },
+  { href: "/orders",    label: "Orders",     icon: ShoppingCart },
+  { href: "/menu",      label: "Menu",       icon: UtensilsCrossed },
+  { href: "/staff",     label: "Staff",      icon: Users },
+  { href: "/audit",     label: "Staff Logs", icon: ClipboardList },
 ];
 
 const navKitchen = [
-  { href: "/kitchen",              label: "Kitchen Board",    icon: Kanban },
-  { href: "/kds",                  label: "KDS View",         icon: MonitorPlay },
-  { href: "/kitchen/availability", label: "Availability",     icon: ToggleLeft },
-  { href: "/dosa-counter",         label: "Dosa Counter",     icon: Soup },
+  { href: "/kitchen",              label: "Kitchen Board", icon: Kanban },
+  { href: "/kitchen/availability", label: "Availability",  icon: ToggleLeft },
+  { href: "/dosa-counter",         label: "Dosa Counter",  icon: Soup },
 ];
 
 // ─── NavLink ──────────────────────────────────────────────────────────────────

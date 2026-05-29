@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/auth.store';
 import { AdminLoginForm, type AdminLoginValues } from '@/components/auth/AdminLoginForm';
 import { StaffLoginForm, type StaffLoginValues } from '@/components/auth/StaffLoginForm';
+import { OAuthButtons } from '@/components/auth/OAuthButtons';
 import { AUTH_TABS, getRedirectPath, type AuthTab } from '@/constants/auth';
 import api from '@/lib/axios';
 import type { ApiSuccess, LoginResponse } from '@/types';
@@ -241,6 +242,20 @@ export default function LoginPage() {
               <AdminLoginForm onSubmit={handleAdminSubmit} serverError={adminError} />
             ) : (
               <StaffLoginForm onSubmit={handleStaffSubmit} serverError={staffError} />
+            )}
+
+            {/* OAuth — admin tab only */}
+            {activeTab === AUTH_TABS.ADMIN && (
+              <div className="mt-5">
+                <div className="relative flex items-center gap-3 my-1">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-[11px] text-fg-subtle font-medium uppercase tracking-widest">or</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+                <div className="mt-3">
+                  <OAuthButtons />
+                </div>
+              </div>
             )}
 
             {/* Register CTA — admin only */}

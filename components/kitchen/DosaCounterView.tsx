@@ -54,15 +54,15 @@ export function DosaCounterView() {
 
       <CapBar current={current} />
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin mt-5">
+        <div className="flex-1 overflow-y-auto scrollbar-thin mt-5">
         {isLoading ? (
           <LoadingSkeleton />
         ) : isError ? (
           <ErrorState onRetry={handleRefresh} />
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 pb-6 items-start">
+          <div className="relative grid grid-cols-1 xl:grid-cols-2 gap-8 pb-6 items-start">
             <DosaOrderSection variant="current" orders={current} />
-            <div className="hidden xl:block absolute inset-y-0 left-1/2 w-px bg-white/[0.06]" aria-hidden />
+            <div className="hidden xl:block absolute top-0 bottom-6 left-1/2 -translate-x-1/2 w-px bg-white/[0.06]" aria-hidden />
             <DosaOrderSection variant="upcoming" orders={upcoming} />
           </div>
         )}

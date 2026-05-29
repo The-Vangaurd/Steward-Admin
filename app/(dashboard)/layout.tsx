@@ -17,6 +17,8 @@ const PAGE_TITLES: Record<string, string> = {
   "/settings":             "Settings",
   "/kitchen":              "Kitchen Board",
   "/kitchen/availability": "Item Availability",
+  "/dosa-counter":         "Dosa Counter",
+  "/audit":                "Staff Logs",
 };
 
 const ADMIN_ONLY_PATHS = ["/dashboard", "/orders", "/menu", "/staff", "/settings"];
