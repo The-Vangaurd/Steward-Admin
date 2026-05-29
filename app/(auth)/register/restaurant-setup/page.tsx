@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,7 +46,7 @@ interface RestaurantSetupResponse {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function RestaurantSetupPage() {
+function RestaurantSetupPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth, accessToken: existingToken } = useAuthStore();
@@ -338,5 +338,17 @@ export default function RestaurantSetupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RestaurantSetupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-bg text-fg">
+        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+      </div>
+    }>
+      <RestaurantSetupPageContent />
+    </Suspense>
   );
 }
