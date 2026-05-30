@@ -29,7 +29,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { formatDate } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
 import type { ApiSuccess, PaginationMeta, User } from "@/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
