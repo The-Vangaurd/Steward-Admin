@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, UtensilsCrossed, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -55,13 +55,58 @@ function MenuItemsTab({ categories }: { categories: Category[] }) {
   const items = data?.data ?? [];
   const meta = data?.meta;
 
-  const handleAvailabilityToggle = async (item: MenuItem, isAvailable: boolean) => {
-    try {
-      await api.patch(`/menu/admin/items/${item.id}/availability`, { isAvailable });
-      queryClient.invalidateQueries({ queryKey: ["menu-items"] });
-    } catch {
-      toast.error("Failed to update availability");
-    }
+  const toggleMutation = useMutation({
+    mutationFn: async ({ item, isAvailable }: { item: MenuItem; isAvailable: boolean }) => {
+      const { data } = await api.patch<ApiSuccess<MenuItem>>(
+        `/menu/admin/items/${item.id}/availability`,
+        { isAvailable }
+      );
+      return data.data;
+    },
+    onMutate: async ({ item, isAvailable }) => {
+      await queryClient.cancelQueries({ queryKey: ["menu-items", page] });
+      const previousData = queryClient.getQueryData<ApiSuccess<MenuItem[]> & { meta: PaginationMeta }>(["menu-items", page]);
+
+      if (previousData) {
+        queryClient.setQueryData<ApiSuccess<MenuItem[]> & { meta: PaginationMeta }>(
+          ["menu-items", page],
+          {
+            ...previousData,
+            data: previousData.data.map((i) =>
+              i.id === item.id ? { ...i, isAvailable } : i
+            ),
+          }
+        );
+      }
+
+      return { previousData };
+    },
+    onSuccess: (updatedItem) => {
+      toast.success(
+        `${updatedItem.name} marked ${updatedItem.isAvailable ? "available" : "unavailable"}`
+      );
+      queryClient.setQueryData<ApiSuccess<MenuItem[]> & { meta: PaginationMeta }>(
+        ["menu-items", page],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.map((current) => (current.id === updatedItem.id ? updatedItem : current)),
+          };
+        }
+      );
+    },
+    onError: (error: unknown, { item, isAvailable }, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(["menu-items", page], context.previousData);
+      }
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err?.response?.data?.message ?? "Failed to update availability");
+    },
+  });
+
+  const handleAvailabilityToggle = (item: MenuItem, isAvailable: boolean) => {
+    toggleMutation.mutate({ item, isAvailable });
   };
 
   const handleDelete = async () => {
