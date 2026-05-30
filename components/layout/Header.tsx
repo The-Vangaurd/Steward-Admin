@@ -369,16 +369,16 @@ function UserMenu({ initials, onClose }: { initials: string; onClose: () => void
       <div className="p-1">
         <Link
           href="/settings"
-          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-fg hover:bg-surface-2 transition-colors"
+          className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] text-fg hover:bg-surface-2 transition-colors"
           onClick={onClose}
         >
-          <SettingsIcon className="h-3.5 w-3.5" />
+          <SettingsIcon className="h-3.5 w-3.5 text-fg-subtle" />
           Settings
         </Link>
-        <div className="border-t border-border my-1" />
+        <div className="my-1 border-t border-border" />
         <button
-          onClick={logout}
-          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-danger hover:bg-danger/10 transition-colors"
+          onClick={() => { logout(); onClose(); }}
+          className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] text-danger hover:bg-danger/10 transition-colors"
         >
           <LogOut className="h-3.5 w-3.5" />
           Sign out

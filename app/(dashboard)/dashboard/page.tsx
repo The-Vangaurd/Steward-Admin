@@ -140,11 +140,29 @@ export default function DashboardPage() {
         </Suspense>
       </div>
 
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <h3 className="text-lg font-semibold text-fg">Order List</h3>
-          <RangeToggle />
+      {/* ── Order List ───────────────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[15px] font-semibold text-fg">Order List</h3>
+          {/* Range toggle — same state as the header-level one */}
+          <div className="inline-flex items-center rounded-lg border border-border bg-surface p-0.5">
+            {QUICK_RANGES.map((r) => (
+              <button
+                key={r.value}
+                onClick={() => setActiveRange(r.value)}
+                className={cn(
+                  "h-7 px-3 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-all duration-150",
+                  activeRange === r.value
+                    ? "bg-surface-3 text-fg border border-border-strong shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    : "text-fg-muted hover:text-fg"
+                )}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
         </div>
+
         <RecentOrdersTable params={params} activeRange={activeRange} />
       </div>
     </div>

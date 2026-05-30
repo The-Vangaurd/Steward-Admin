@@ -55,7 +55,7 @@ export function TabTheme({ settings, onChange }: Props) {
           <ColorPicker value={settings.accentColor} onChange={(c) => set("accentColor", c)} />
         </SettingsRow>
 
-        <SettingsRow label="Menu background" description="Background tint — subtle colour behind your menu page (leave blank for default dark)">
+        <SettingsRow label="Menu background" description="Background tint for your menu page — leave blank for default dark">
           <ColorPicker value={settings.menuBgColor ?? ""} onChange={(c) => set("menuBgColor", c)} />
         </SettingsRow>
 

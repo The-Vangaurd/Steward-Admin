@@ -9,24 +9,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Order, ApiSuccess } from "@/types";
 
-interface Props {
+interface RecentOrdersTableProps {
   params: { from: string; to: string };
   activeRange: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  NEW:       { label: "New Order",  className: "bg-warning/10 text-warning border-warning/20" },
-  PREPARING: { label: "Preparing",  className: "bg-info/10 text-info border-info/20" },
-  READY:     { label: "Ready",      className: "bg-success/10 text-success border-success/20" },
+  NEW:       { label: "New Order",  className: "bg-warning/10 text-warning border-warning/30" },
+  PREPARING: { label: "Preparing",  className: "bg-info/10 text-info border-info/30" },
+  READY:     { label: "Ready",      className: "bg-success/10 text-success border-success/30" },
   COMPLETED: { label: "Completed",  className: "bg-surface-2 text-fg-subtle border-border" },
-  CANCELLED: { label: "Cancelled",  className: "bg-danger/10 text-danger border-danger/20" },
+  CANCELLED: { label: "Cancelled",  className: "bg-danger/10 text-danger border-danger/30" },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const config = STATUS_CONFIG[status] ?? { label: status, className: "bg-surface-2 text-fg-subtle border-border" };
   return (
     <span className={cn(
-      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap",
+      "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
       config.className
     )}>
       {config.label}
@@ -39,21 +39,21 @@ function TableSkeleton() {
     <>
       {[1, 2, 3].map((i) => (
         <tr key={i} className="border-b border-border last:border-0">
-          <td className="px-3 py-3"><Skeleton className="h-3 w-4 bg-surface-3" /></td>
-          <td className="px-3 py-3"><Skeleton className="h-3 w-16 bg-surface-3" /></td>
-          <td className="px-3 py-3"><Skeleton className="h-3 w-24 bg-surface-3" /></td>
-          <td className="px-3 py-3"><Skeleton className="h-3 w-20 bg-surface-3" /></td>
-          <td className="px-3 py-3"><Skeleton className="h-3 w-16 bg-surface-3" /></td>
-          <td className="px-3 py-3"><Skeleton className="h-3 w-14 bg-surface-3" /></td>
-          <td className="px-3 py-3"><Skeleton className="h-5 w-16 rounded-full bg-surface-3" /></td>
-          <td className="px-3 py-3"><Skeleton className="h-6 w-6 rounded-md bg-surface-3" /></td>
+          <td className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
+          <td className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
+          <td className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
+          <td className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
+          <td className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
+          <td className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
+          <td className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
+          <td className="px-3 py-3"><Skeleton className="h-4 w-full" /></td>
         </tr>
       ))}
     </>
   );
 }
 
-export function RecentOrdersTable({ params }: Props) {
+export function RecentOrdersTable({ params, activeRange }: RecentOrdersTableProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["recent-orders-table", params],
     queryFn: async () => {
@@ -74,7 +74,7 @@ export function RecentOrdersTable({ params }: Props) {
           <thead>
             <tr className="border-b border-border">
               {["No", "ID", "Date", "Customer Name", "Location", "Amount", "Status", "Action"].map((col) => (
-                <th key={col} className="label-xs px-3 pb-2.5 text-left font-semibold uppercase tracking-wider">
+                <th key={col} className="label-xs uppercase tracking-wider">
                   {col}
                 </th>
               ))}
@@ -97,13 +97,13 @@ export function RecentOrdersTable({ params }: Props) {
                     <span className="font-mono text-[12px] text-fg">#{order.orderNumber}</span>
                   </td>
                   <td className="px-3 py-2.5 text-[12px] text-fg-muted whitespace-nowrap">
-                    {order.createdAt ? format(new Date(order.createdAt), "MMM do, yyyy") : "—"}
+                    {format(new Date(order.createdAt), "MMM do, yyyy")}
                   </td>
                   <td className="px-3 py-2.5 text-[12px] text-fg">
                     {order.customerName ?? "Guest"}
                   </td>
                   <td className="px-3 py-2.5 text-[12px] text-fg-muted whitespace-nowrap">
-                    {order.tableNumber ? `Table ${order.tableNumber}` : order.orderType ?? "—"}
+                    {order.tableNumber ? `Table ${order.tableNumber}` : (order.orderType ?? "—")}
                   </td>
                   <td className="px-3 py-2.5 text-[12px] text-fg tabular-nums">
                     {formatCurrency(order.totalAmount ?? 0)}
@@ -113,13 +113,8 @@ export function RecentOrdersTable({ params }: Props) {
                   </td>
                   <td className="px-3 py-2.5">
                     <Link href="/orders">
-                      <button
-                        type="button"
-                        className="grid h-6 w-6 place-items-center rounded-md text-fg-subtle hover:bg-surface-3 hover:text-fg transition-colors"
-                        title="View orders"
-                        aria-label="View orders"
-                      >
-                        <MoreHorizontal className="h-3.5 w-3.5" />
+                      <button className="grid h-6 w-6 place-items-center rounded-md hover:bg-surface-2">
+                        <MoreHorizontal className="h-4 w-4" />
                       </button>
                     </Link>
                   </td>
