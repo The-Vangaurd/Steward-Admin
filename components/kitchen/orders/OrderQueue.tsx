@@ -18,10 +18,12 @@ const ACTIVE_STATUSES: OrderStatus[] = ["NEW", "PREPARING", "READY"];
 
 const STATUS_SORT_ORDER: Record<OrderStatus, number> = {
   NEW:       0,
-  PREPARING: 1,
-  READY:     2,
-  COMPLETED: 3,
-  CANCELLED: 4,
+  PENDING:   1,
+  CONFIRMED: 2,
+  PREPARING: 3,
+  READY:     4,
+  COMPLETED: 5,
+  CANCELLED: 6,
 };
 
 function applyFilter(orders: KitchenOrder[], filter: QueueFilter): KitchenOrder[] {
