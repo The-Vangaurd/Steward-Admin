@@ -6,6 +6,7 @@ import {
   LogOut, User, ChevronRight, Loader2, Package,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
+import { useSettingsStore } from "@/stores/settings.store";
 import { useAuth } from "@/hooks/useAuth";
 import { useRestaurantSettings } from "@/hooks/useRestaurantSettings";
 import { useQuery } from "@tanstack/react-query";
@@ -380,6 +381,7 @@ function UserMenu({ initials, onClose }: { initials: string; onClose: () => void
 
 export function Header({ onMenuClick, title }: HeaderProps) {
   const user = useAuthStore((s) => s.user);
+  const { wsConnected } = useSettingsStore();
   const { data: settings } = useRestaurantSettings();
   const restaurantName = user?.restaurantId
     ? ((settings as any)?.restaurantName ?? settings?.name ?? "Steward")
@@ -472,9 +474,14 @@ export function Header({ onMenuClick, title }: HeaderProps) {
           {/* Live indicator */}
           <div className="hidden md:flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-surface">
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inset-0 rounded-full bg-success live-dot" />
+              <span className={cn(
+                "absolute inset-0 rounded-full live-dot",
+                wsConnected ? "bg-success" : "bg-fg-subtle"
+              )} />
             </span>
-            <span className="text-[11px] font-medium text-fg-muted">Live</span>
+            <span className="text-[11px] font-medium text-fg-muted">
+              {wsConnected ? "Live" : "Offline"}
+            </span>
           </div>
 
           {/* Notifications */}
