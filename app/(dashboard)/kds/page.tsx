@@ -105,9 +105,23 @@ const KdsOrderCard = memo(function KdsOrderCard({
       )}
 
       <footer className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border bg-surface-2/30">
-        <span className="text-[11px] text-fg-subtle num">
-          {formatCurrency(order.totalAmount ?? 0)}
-        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[11px] font-semibold text-fg num">
+            {formatCurrency(order.totalAmount ?? 0)}
+          </span>
+          <span className={cn(
+            "text-[9px] font-bold uppercase tracking-wider",
+            order.paymentStatus === "paid"
+              ? "text-success"
+              : order.paymentMethod === "online"
+              ? "text-danger animate-pulse"
+              : "text-warning"
+          )}>
+            {order.paymentMethod === "online"
+              ? (order.paymentStatus === "paid" ? "Paid Online" : "Unpaid Online")
+              : "Pay at Counter"}
+          </span>
+        </div>
         <div className="flex items-center gap-1.5">
           {lane !== "READY" && (
             <button

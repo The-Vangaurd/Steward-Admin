@@ -4,8 +4,6 @@ type BadgeVariant = "default" | "neutral" | "warning" | "info" | "success" | "da
 
 const STATUS_CONFIG: Record<string, { variant: BadgeVariant; label: string }> = {
   NEW:       { variant: "warning",  label: "New" },
-  PENDING:   { variant: "warning",  label: "Pending" },
-  CONFIRMED: { variant: "info",     label: "Confirmed" },
   PREPARING: { variant: "info",     label: "Preparing" },
   READY:     { variant: "success",  label: "Ready" },
   COMPLETED: { variant: "neutral",  label: "Completed" },

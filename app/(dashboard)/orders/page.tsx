@@ -1,17 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { PackageSearch, RefreshCw, Download } from "lucide-react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { PackageSearch, RefreshCw, Download, MoreHorizontal, CreditCard, Utensils, Check, ClipboardCheck, XCircle } from "lucide-react";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { OrderFilters } from "@/components/orders/OrderFilters";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import type { Order, OrderFilters as OrderFiltersType, ApiSuccess, PaginationMeta } from "@/types";
 
 const ORDER_TYPE_LABELS: Record<string, string> = {
@@ -44,6 +51,26 @@ export default function OrdersPage() {
 
   const orders = data?.data ?? [];
   const meta = data?.meta;
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data } = await api.patch(`/orders/admin/${id}/status`, { status });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.post(`/orders/admin/${id}/pay`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
 
   return (
     <div className="px-5 py-5 lg:px-6 lg:py-6 space-y-4 max-w-[1400px] mx-auto">
@@ -102,9 +129,11 @@ export default function OrdersPage() {
                   <TableHead className="h-9 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Status</TableHead>
                   <TableHead className="h-9 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Type</TableHead>
                   <TableHead className="h-9 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Table</TableHead>
+                  <TableHead className="h-9 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Payment</TableHead>
                   <TableHead className="h-9 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Items</TableHead>
                   <TableHead className="h-9 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle text-right">Total</TableHead>
                   <TableHead className="h-9 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Placed</TableHead>
+                  <TableHead className="h-9 w-[40px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -122,6 +151,20 @@ export default function OrdersPage() {
                     <TableCell className="py-2.5 text-[12px] text-fg-muted num">
                       {order.tableNumber ?? "—"}
                     </TableCell>
+                    <TableCell className="py-2.5">
+                      <span className={cn(
+                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                        order.paymentStatus === "paid"
+                          ? "bg-success/10 text-success border-success/30"
+                          : order.paymentMethod === "online"
+                          ? "bg-danger/10 text-danger border-danger/30 animate-pulse"
+                          : "bg-warning/10 text-warning border-warning/30"
+                      )}>
+                        {order.paymentMethod === "online"
+                          ? `Online · ${order.paymentStatus === "paid" ? "Paid" : "Failed"}`
+                          : `Cash · Counter`}
+                      </span>
+                    </TableCell>
                     <TableCell className="py-2.5 text-[12px] text-fg-muted num">
                       {order.items?.length ?? 0}
                     </TableCell>
@@ -130,6 +173,56 @@ export default function OrdersPage() {
                     </TableCell>
                     <TableCell className="py-2.5 text-[11px] text-fg-subtle num">
                       {order.createdAt ? formatDate(order.createdAt) : "—"}
+                    </TableCell>
+                    <TableCell className="py-2.5 pr-4 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-7 w-7 p-0 hover:bg-surface-3">
+                            <MoreHorizontal className="h-4 w-4 text-fg-muted" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[180px]">
+                          <DropdownMenuItem
+                            disabled={order.paymentStatus === "paid" || markPaidMutation.isPending}
+                            onClick={() => markPaidMutation.mutate(order.id)}
+                            className={order.paymentStatus === "paid" ? "opacity-50" : ""}
+                          >
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            <span>Mark as Paid</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            disabled={order.status === "PREPARING" || order.status === "READY" || order.status === "COMPLETED" || order.status === "CANCELLED" || updateStatusMutation.isPending}
+                            onClick={() => updateStatusMutation.mutate({ id: order.id, status: "PREPARING" })}
+                          >
+                            <Utensils className="mr-2 h-4 w-4" />
+                            <span>Start Preparing</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={order.status === "READY" || order.status === "COMPLETED" || order.status === "CANCELLED" || updateStatusMutation.isPending}
+                            onClick={() => updateStatusMutation.mutate({ id: order.id, status: "READY" })}
+                          >
+                            <Check className="mr-2 h-4 w-4" />
+                            <span>Mark Ready</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={order.status === "COMPLETED" || order.status === "CANCELLED" || updateStatusMutation.isPending}
+                            onClick={() => updateStatusMutation.mutate({ id: order.id, status: "COMPLETED" })}
+                          >
+                            <ClipboardCheck className="mr-2 h-4 w-4" />
+                            <span>Complete Order</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            disabled={order.status === "CANCELLED" || updateStatusMutation.isPending}
+                            onClick={() => updateStatusMutation.mutate({ id: order.id, status: "CANCELLED" })}
+                            className="text-danger focus:text-danger focus:bg-danger/10"
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            <span>Cancel Order</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

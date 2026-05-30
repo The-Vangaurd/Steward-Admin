@@ -6,8 +6,6 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; bg: string; dot: string }
 > = {
   NEW:       { label: "New",       color: "text-[#D9B872]", bg: "bg-[#D9B872]/10", dot: "bg-[#D9B872]" },
-  PENDING:   { label: "Pending",   color: "text-[#D9B872]", bg: "bg-[#D9B872]/10", dot: "bg-[#D9B872]" },
-  CONFIRMED: { label: "Confirmed", color: "text-[#C8B6E2]", bg: "bg-[#C8B6E2]/12", dot: "bg-[#C8B6E2]" },
   PREPARING: { label: "Preparing", color: "text-[#C8B6E2]", bg: "bg-[#C8B6E2]/12", dot: "bg-[#C8B6E2]" },
   READY:     { label: "Ready",     color: "text-[#92B9A5]", bg: "bg-[#92B9A5]/10", dot: "bg-[#92B9A5]" },
   COMPLETED: { label: "Completed", color: "text-white/40",   bg: "bg-white/5",       dot: "bg-white/30"   },

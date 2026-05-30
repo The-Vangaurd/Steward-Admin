@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import type { OrderFilters as OrderFiltersType } from "@/types";
 
 // History page shows all terminal + active statuses
-const STATUS_OPTIONS = ["NEW", "PENDING", "CONFIRMED", "PREPARING", "READY", "COMPLETED", "CANCELLED"] as const;
+const STATUS_OPTIONS = ["NEW", "PREPARING", "READY", "COMPLETED", "CANCELLED"] as const;
 const TYPE_OPTIONS = ["DINE_IN", "TAKEAWAY", "DELIVERY"];
 
 interface Props { filters: OrderFiltersType; onChange: (f: OrderFiltersType) => void; }

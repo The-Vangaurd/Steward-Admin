@@ -40,8 +40,6 @@ function useRecentOrders(enabled = true) {
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "text-warning",
-  PENDING: "text-warning",
-  CONFIRMED: "text-info",
   PREPARING: "text-info",
   READY: "text-success",
   COMPLETED: "text-fg-subtle",
@@ -50,8 +48,6 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   NEW: "New",
-  PENDING: "Pending",
-  CONFIRMED: "Confirmed",
   PREPARING: "Preparing",
   READY: "Ready",
   COMPLETED: "Completed",
