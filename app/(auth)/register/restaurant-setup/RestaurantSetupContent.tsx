@@ -243,11 +243,11 @@ export default function RestaurantSetupContent() {
 
             <p className="mt-4 text-[11px] text-fg-subtle text-center">
               By registering you agree to our{' '}
-              <a className="hover:text-fg-muted cursor-pointer underline underline-offset-2">
+              <a href="#" aria-label="Terms of Service (coming soon)" className="hover:text-fg-muted underline underline-offset-2">
                 Terms of Service
               </a>{' '}
               and{' '}
-              <a className="hover:text-fg-muted cursor-pointer underline underline-offset-2">
+              <a href="#" aria-label="Privacy Policy (coming soon)" className="hover:text-fg-muted underline underline-offset-2">
                 Privacy Policy
               </a>
               .
@@ -258,8 +258,8 @@ export default function RestaurantSetupContent() {
         <div className="flex items-center justify-between text-[11px] text-fg-subtle">
           <span>© {new Date().getFullYear()} SpiceOS</span>
           <div className="flex items-center gap-4">
-            <a className="hover:text-fg-muted cursor-pointer">Privacy</a>
-            <a className="hover:text-fg-muted cursor-pointer">Terms</a>
+            <a href="#" aria-label="Privacy policy (coming soon)" className="hover:text-fg-muted">Privacy</a>
+            <a href="#" aria-label="Terms of service (coming soon)" className="hover:text-fg-muted">Terms</a>
           </div>
         </div>
       </div>

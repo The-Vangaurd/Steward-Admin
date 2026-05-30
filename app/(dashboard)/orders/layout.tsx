@@ -17,13 +17,15 @@ const PAGE_TITLES: Record<string, string> = {
   "/settings":             "Settings",
   "/kitchen":              "Kitchen Board",
   "/kitchen/availability": "Item Availability",
+  "/kds":                  "Kitchen Display",
   "/dosa-counter":         "Dosa Counter",
   "/audit":                "Staff Logs",
 };
 
 const ADMIN_ONLY_PATHS = ["/dashboard", "/orders", "/menu", "/staff", "/settings"];
 const ALLOWED_ROLES    = ["ADMIN", "SUPER_ADMIN", "KITCHEN_STAFF", "WAITER"];
-const KITCHEN_PATHS    = ["/kitchen"];
+// All paths where the kitchen socket should be active
+const KITCHEN_PATHS    = ["/kitchen", "/kds", "/dosa-counter"];
 
 function resolveTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];

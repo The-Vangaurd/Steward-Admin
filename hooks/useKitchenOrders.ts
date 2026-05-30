@@ -5,7 +5,8 @@ import { useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
 import type { ApiSuccess, KitchenOrder, OrderStatus } from "@/types";
-import { ACTIVE_KITCHEN_STATUSES } from "@/types";
+
+import { settingsStore } from "@/stores/settings.store";
 
 export const KITCHEN_ORDERS_QUERY_KEY = ["kitchen-orders"] as const;
 
@@ -18,8 +19,11 @@ export function useKitchenOrders() {
       );
       return data.data;
     },
-    // Socket events invalidate in real-time; 30s poll as fallback
-    refetchInterval: 30_000,
+    // Socket events invalidate in real-time; only poll when offline
+    refetchInterval: () => {
+      const { wsConnected } = settingsStore.getSnapshot();
+      return wsConnected ? false : 15_000;
+    },
     structuralSharing: true,
   });
 }

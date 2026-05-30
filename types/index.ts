@@ -4,6 +4,8 @@ export type UserRole = "SUPER_ADMIN" | "ADMIN" | "KITCHEN_STAFF" | "WAITER";
 
 export type OrderStatus =
   | "NEW"
+  | "PENDING"
+  | "CONFIRMED"
   | "PREPARING"
   | "READY"
   | "COMPLETED"
@@ -209,11 +211,13 @@ export interface KitchenOrder {
 }
 
 // Active states shown on the kanban board
-export const ACTIVE_KITCHEN_STATUSES: OrderStatus[] = ["NEW", "PREPARING", "READY"];
+export const ACTIVE_KITCHEN_STATUSES: OrderStatus[] = ["NEW", "PENDING", "CONFIRMED", "PREPARING", "READY"];
 
 // Status flow for the kanban board
 export const ORDER_STATUS_FLOW: Record<OrderStatus, OrderStatus[]> = {
   NEW:       ["PREPARING"],
+  PENDING:   ["CONFIRMED"],
+  CONFIRMED: ["PREPARING"],
   PREPARING: ["READY"],
   READY:     ["COMPLETED"],
   COMPLETED: [],

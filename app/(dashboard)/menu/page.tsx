@@ -41,7 +41,7 @@ function MenuItemsTab({ categories }: { categories: Category[] }) {
   const [editItem, setEditItem] = useState<MenuItem | undefined>();
   const [deleteItem, setDeleteItem] = useState<MenuItem | undefined>();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["menu-items", page],
     queryFn: async () => {
       const { data } = await api.get<ApiSuccess<MenuItem[]> & { meta: PaginationMeta }>(
@@ -105,6 +105,7 @@ function MenuItemsTab({ categories }: { categories: Category[] }) {
         ) : isError ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <p className="text-[13px] text-fg-muted">Failed to load menu items.</p>
+            <Button size="sm" variant="secondary" onClick={() => refetch()}>Retry</Button>
           </div>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">

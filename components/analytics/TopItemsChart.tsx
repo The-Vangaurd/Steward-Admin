@@ -54,6 +54,11 @@ export const TopItemsChart = memo(function TopItemsChart({ data, loading }: TopI
       </div>
       {loading ? (
         <Skeleton className="h-56 w-full" />
+      ) : !formatted || formatted.length === 0 ? (
+        <div className="flex h-56 flex-col items-center justify-center gap-2">
+          <p className="text-[13px] font-medium text-fg-muted">No orders yet</p>
+          <p className="text-[11px] text-fg-subtle">Top items will appear once orders come in</p>
+        </div>
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={formatted} layout="vertical" margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>

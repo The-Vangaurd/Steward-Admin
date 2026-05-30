@@ -67,6 +67,11 @@ export const RevenueChart = memo(function RevenueChart({ data, loading }: Revenu
       </div>
       {loading ? (
         <Skeleton className="h-56 w-full" />
+      ) : !formatted || formatted.length === 0 ? (
+        <div className="flex h-56 flex-col items-center justify-center gap-2">
+          <p className="text-[13px] font-medium text-fg-muted">No revenue data</p>
+          <p className="text-[11px] text-fg-subtle">Try selecting a wider date range</p>
+        </div>
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={formatted} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>

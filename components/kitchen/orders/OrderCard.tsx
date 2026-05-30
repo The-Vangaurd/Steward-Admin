@@ -12,22 +12,22 @@ import type { KitchenOrder, OrderType } from "@/types";
 
 // Static lookup tables defined outside component — zero allocation on render
 const ORDER_TYPE_META: Record<OrderType, { icon: React.ReactNode; label: string }> = {
-  DINE_IN:  { icon: <UtensilsCrossed className="h-3.5 w-3.5" />, label: "Dine In" },
-  TAKEAWAY: { icon: <ShoppingBag className="h-3.5 w-3.5" />,     label: "Takeaway" },
-  DELIVERY: { icon: <Bike className="h-3.5 w-3.5" />,            label: "Delivery" },
+  DINE_IN: { icon: <UtensilsCrossed className="h-3.5 w-3.5" />, label: "Dine In" },
+  TAKEAWAY: { icon: <ShoppingBag className="h-3.5 w-3.5" />, label: "Takeaway" },
+  DELIVERY: { icon: <Bike className="h-3.5 w-3.5" />, label: "Delivery" },
 };
 
 const STATUS_STRIP: Record<string, string> = {
-  NEW:       "border-l-[#D9B872]",
+  NEW: "border-l-[#D9B872]",
   PREPARING: "border-l-[#C8B6E2]",
-  READY:     "border-l-[#92B9A5]",
+  READY: "border-l-[#92B9A5]",
   CANCELLED: "border-l-[#B42318]",
 };
 
 const STATUS_TINT: Record<string, string> = {
-  NEW:       "shadow-[#D9B872]/5",
+  NEW: "shadow-[#D9B872]/5",
   PREPARING: "shadow-[#C8B6E2]/7",
-  READY:     "shadow-[#92B9A5]/7",
+  READY: "shadow-[#92B9A5]/7",
   CANCELLED: "shadow-[#B42318]/5",
 };
 

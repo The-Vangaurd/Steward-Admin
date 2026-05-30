@@ -27,6 +27,11 @@ export const HourlyChart = memo(function HourlyChart({ data, loading }: HourlyCh
       </div>
       {loading ? (
         <Skeleton className="h-44 w-full" />
+      ) : !data || data.length === 0 ? (
+        <div className="flex h-44 flex-col items-center justify-center gap-2">
+          <p className="text-[13px] font-medium text-fg-muted">No hourly data</p>
+          <p className="text-[11px] text-fg-subtle">Try selecting a wider date range</p>
+        </div>
       ) : (
         <HourlyChartInner data={data} />
       )}

@@ -2,8 +2,11 @@
 
 import { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { settingsStore } from "@/stores/settings.store";
+import { KITCHEN_ORDERS_QUERY_KEY } from "@/hooks/useKitchenOrders";
 import { differenceInSeconds } from "date-fns";
 import { Check, X, Flame, Clock3, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -147,25 +150,27 @@ const KdsOrderCard = memo(function KdsOrderCard({
 
 export default function KdsPage() {
   const qc = useQueryClient();
-  // Tick every 10s instead of 1s — elapsed timers show MM:SS but
-  // kitchen staff only need ~10s resolution. Reduces renders 10×.
+  // 1s interval for accurate MM:SS elapsed timers on kitchen display
   const [now, setNow] = useState(() => Date.now());
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 10_000);
+    const id = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(id);
   }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["kds-orders"],
+    queryKey: [...KITCHEN_ORDERS_QUERY_KEY, "kds"],
     queryFn: async () => {
       const { data } = await api.get<ApiSuccess<Order[]>>("/orders/admin/list", {
         params: { limit: 100, status: "NEW,PREPARING,READY" },
       });
       return data.data;
     },
-    refetchInterval: 15_000, // reduced from 5s — sockets handle real-time
+    refetchInterval: () => {
+      const { wsConnected } = settingsStore.getSnapshot();
+      return wsConnected ? false : 15_000;
+    },
     structuralSharing: true,
   });
 
@@ -191,21 +196,27 @@ export default function KdsPage() {
         ? `/orders/admin/${order.id}/status`
         : `/orders/kitchen/${order.id}/status`;
       await api.patch(route, { status: to });
-      qc.invalidateQueries({ queryKey: ["kds-orders"] });
-    } catch {}
+      qc.invalidateQueries({ queryKey: [...KITCHEN_ORDERS_QUERY_KEY, "kds"] });
+      qc.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Failed to update order status");
+    }
   }, [qc]);
 
   const cancel = useCallback(async (order: any) => {
     try {
       await api.patch(`/orders/admin/${order.id}/status`, { status: "CANCELLED" });
-      qc.invalidateQueries({ queryKey: ["kds-orders"] });
-    } catch {}
+      qc.invalidateQueries({ queryKey: [...KITCHEN_ORDERS_QUERY_KEY, "kds"] });
+      qc.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Failed to cancel order");
+    }
   }, [qc]);
 
-  const handleRefresh = useCallback(
-    () => qc.invalidateQueries({ queryKey: ["kds-orders"] }),
-    [qc]
-  );
+  const handleRefresh = useCallback(() => {
+    qc.invalidateQueries({ queryKey: [...KITCHEN_ORDERS_QUERY_KEY, "kds"] });
+    qc.invalidateQueries({ queryKey: KITCHEN_ORDERS_QUERY_KEY });
+  }, [qc]);
 
   return (
     <div className="h-full flex flex-col">

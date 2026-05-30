@@ -26,6 +26,8 @@ export function useSocket({ enabled = true }: UseSocketOptions = {}) {
 
   const handleOrderCreated = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["orders"] });
+    // Also refresh the notification bell so the badge count updates immediately
+    queryClient.invalidateQueries({ queryKey: ["header-recent-orders"] });
     toast.info("New order received!", { description: "Check the orders page." });
   }, [queryClient]);
 

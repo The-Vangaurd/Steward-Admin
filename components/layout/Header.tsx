@@ -21,7 +21,7 @@ interface HeaderProps {
 
 // ─── Notification Panel ───────────────────────────────────────────────────────
 
-function useRecentOrders() {
+function useRecentOrders(enabled = true) {
   return useQuery({
     queryKey: ["header-recent-orders"],
     queryFn: async () => {
@@ -31,7 +31,8 @@ function useRecentOrders() {
       return data.data ?? [];
     },
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    refetchInterval: enabled ? 60_000 : false,
+    enabled,
   });
 }
 
@@ -55,13 +56,19 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelled",
 };
 
-function NotificationPanel({ onClose }: { onClose: () => void }) {
-  const { data: orders, isLoading } = useRecentOrders();
-
+function NotificationPanel({
+  onClose,
+  orders,
+  isLoading,
+}: {
+  onClose: () => void;
+  orders: Order[] | undefined;
+  isLoading: boolean;
+}) {
   return (
     <div
       className={cn(
-        "absolute right-0 top-full mt-2 z-50 w-[340px]",
+        "absolute right-0 top-full mt-2 z-30 w-[340px]",
         "rounded-xl border border-border bg-surface shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
         "animate-in fade-in-0 slide-in-from-top-2 duration-150"
       )}
@@ -339,7 +346,7 @@ function UserMenu({ initials, onClose }: { initials: string; onClose: () => void
   return (
     <div
       className={cn(
-        "absolute right-0 top-full mt-2 z-50 w-[220px]",
+        "absolute right-0 top-full mt-2 z-30 w-[220px]",
         "rounded-xl border border-border bg-surface shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
         "animate-in fade-in-0 slide-in-from-top-2 duration-150"
       )}
@@ -414,8 +421,10 @@ export function Header({ onMenuClick, title }: HeaderProps) {
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
-  // Use recent orders to determine if there are any NEW orders
-  const { data: recentOrders } = useRecentOrders();
+  const [hasOpenedNotif, setHasOpenedNotif] = useState(false);
+
+  // Use recent orders with lazy load gated on notification panel state
+  const { data: recentOrders, isLoading: ordersLoading } = useRecentOrders(hasOpenedNotif || notifOpen);
   const newOrderCount = recentOrders?.filter(
     (o: any) => o.status === "NEW"
   ).length ?? 0;
@@ -436,7 +445,7 @@ export function Header({ onMenuClick, title }: HeaderProps) {
           <h1 className="text-[13px] font-semibold text-fg tracking-tight">{title}</h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-visible">
           {/* Search */}
           <button
             onClick={() => setSearchOpen(true)}
@@ -471,7 +480,11 @@ export function Header({ onMenuClick, title }: HeaderProps) {
           {/* Notifications */}
           <div className="relative" ref={notifRef}>
             <button
-              onClick={() => { setNotifOpen((v) => !v); setUserOpen(false); }}
+              onClick={() => {
+                setHasOpenedNotif(true);
+                setNotifOpen((v) => !v);
+                setUserOpen(false);
+              }}
               aria-label={`Notifications${newOrderCount > 0 ? `, ${newOrderCount} new` : ""}`}
               aria-expanded={notifOpen}
               className={cn(
@@ -488,7 +501,11 @@ export function Header({ onMenuClick, title }: HeaderProps) {
             </button>
 
             {notifOpen && (
-              <NotificationPanel onClose={() => setNotifOpen(false)} />
+              <NotificationPanel
+                onClose={() => setNotifOpen(false)}
+                orders={recentOrders}
+                isLoading={ordersLoading}
+              />
             )}
           </div>
 

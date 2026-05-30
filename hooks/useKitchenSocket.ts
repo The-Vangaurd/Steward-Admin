@@ -20,6 +20,7 @@ import { useBaseSocket } from "@/hooks/useBaseSocket";
 import { KITCHEN_ORDERS_QUERY_KEY } from "@/hooks/useKitchenOrders";
 import { MENU_ITEMS_QUERY_KEY } from "@/hooks/useItemAvailability";
 import { playNewOrderSound } from "@/lib/sound";
+import { useRestaurantSettings } from "@/hooks/useRestaurantSettings";
 import type { KitchenOrder } from "@/types";
 
 interface UseKitchenSocketOptions {
@@ -30,6 +31,7 @@ interface UseKitchenSocketOptions {
 export function useKitchenSocket({ enabled = true }: UseKitchenSocketOptions = {}) {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const { data: settings } = useRestaurantSettings();
   const invalidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleInvalidate = useCallback(() => {
@@ -46,8 +48,10 @@ export function useKitchenSocket({ enabled = true }: UseKitchenSocketOptions = {
 
   const handleNewOrder = useCallback(() => {
     scheduleInvalidate();
-    playNewOrderSound();
-  }, [scheduleInvalidate]);
+    if (settings?.notifyOnNewOrder !== false) {
+      playNewOrderSound();
+    }
+  }, [scheduleInvalidate, settings?.notifyOnNewOrder]);
 
   const handleOrderUpdated = useCallback((payload: unknown) => {
     if (
