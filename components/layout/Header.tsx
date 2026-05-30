@@ -141,13 +141,14 @@ function NotificationPanel({
 
       {/* Footer */}
       <div className="border-t border-border px-4 py-2.5">
-        <a
+        <Link
           href="/orders"
           className="flex items-center justify-between text-[11px] text-fg-muted hover:text-fg transition-colors group"
+          onClick={onClose}
         >
           <span>View all orders</span>
           <ChevronRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
-        </a>
+        </Link>
       </div>
     </div>
   );

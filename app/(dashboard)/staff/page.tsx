@@ -68,8 +68,16 @@ const editSchema = z.object({
   isActive: z.boolean(),
 });
 
+const inviteSchema = z.object({
+  email: z.string().email("Valid email required"),
+  role: z.enum(["KITCHEN_STAFF", "WAITER"], { errorMap: () => ({ message: "Role required" }) }),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+});
+
 type CreateForm = z.infer<typeof createSchema>;
 type EditForm = z.infer<typeof editSchema>;
+type InviteForm = z.infer<typeof inviteSchema>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -100,9 +108,12 @@ function CreateStaffSheet({
   onOpenChange: (v: boolean) => void;
   onCreated: () => void;
 }) {
+  const [createMode, setCreateMode] = useState("invite");
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Password creation form
   const {
     register,
     handleSubmit,
@@ -111,10 +122,22 @@ function CreateStaffSheet({
     formState: { errors, isSubmitting },
   } = useForm<CreateForm>({ resolver: zodResolver(createSchema) });
 
+  // Invite form
+  const {
+    register: registerInvite,
+    handleSubmit: handleInviteSubmit,
+    setValue: setInviteValue,
+    reset: resetInvite,
+    formState: { errors: inviteErrors, isSubmitting: inviteSubmitting },
+  } = useForm<InviteForm>({ resolver: zodResolver(inviteSchema) });
+
   const handleClose = () => {
     reset();
+    resetInvite();
     setTempPassword(null);
+    setInviteSuccess(null);
     setCopied(false);
+    setCreateMode("invite");
     onOpenChange(false);
   };
 
@@ -135,6 +158,19 @@ function CreateStaffSheet({
     }
   };
 
+  const handleInviteSubmitForm = handleInviteSubmit(async (values) => {
+    try {
+      await api.post("/admin/staff/invite", values);
+      setInviteSuccess(values.email);
+      resetInvite();
+      toast.success("Invite sent!");
+      onCreated();
+    } catch (err: any) {
+      const message = err?.response?.data?.message ?? "Failed to send invite";
+      toast.error(message);
+    }
+  });
+
   const copyPassword = () => {
     if (!tempPassword) return;
     navigator.clipboard.writeText(tempPassword).then(() => {
@@ -150,104 +186,194 @@ function CreateStaffSheet({
           <SheetTitle>Add Staff Member</SheetTitle>
         </SheetHeader>
 
-        {tempPassword ? (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-success/30 bg-success/10 p-4 space-y-2">
-              <p className="text-[13px] font-semibold text-fg">Account created</p>
-              <p className="text-[12px] text-fg-muted">
-                Share this temporary password with the new staff member. It will not be shown again.
-              </p>
-              <div className="flex items-center gap-2 mt-2 rounded-md border border-border bg-surface px-3 py-2">
-                <code className="flex-1 text-[13px] font-mono text-fg select-all">
-                  {tempPassword}
-                </code>
-                <button
-                  onClick={copyPassword}
-                  className="flex-shrink-0 text-fg-muted hover:text-fg transition-colors"
-                  title="Copy to clipboard"
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-success" />
+        {/* Tab toggle */}
+        <div className="flex gap-2 mb-5">
+          {(["invite", "password"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => { setCreateMode(mode); setInviteSuccess(null); }}
+              className={cn(
+                "flex-1 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors",
+                createMode === mode
+                  ? "bg-surface-3 text-fg"
+                  : "text-fg-muted hover:text-fg"
+              )}
+            >
+              {mode === "invite" ? "Invite by Gmail" : "Set Password"}
+            </button>
+          ))}
+        </div>
+
+        {createMode === "invite" ? (
+          // Invite form
+          inviteSuccess ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-success/30 bg-success/10 p-4 space-y-2">
+                <p className="text-[13px] font-semibold text-fg">Invite sent to <strong>{inviteSuccess}</strong></p>
+                <p className="text-[12px] text-fg-muted">
+                  They can now sign in using the Staff login tab with their Google account.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={() => { setInviteSuccess(null); }}>
+                  Send Another
+                </Button>
+                <Button variant="secondary" className="flex-1" onClick={handleClose}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleInviteSubmitForm} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-[12px]">Email *</Label>
+                <Input type="email" {...registerInvite("email")} placeholder="staff@restaurant.com" />
+                {inviteErrors.email && (
+                  <p className="text-[11px] text-danger">{inviteErrors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[12px]">Role *</Label>
+                <Select onValueChange={(v) => setInviteValue("role", v as InviteForm["role"])}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="KITCHEN_STAFF">Kitchen Staff</SelectItem>
+                    <SelectItem value="WAITER">Waiter</SelectItem>
+                  </SelectContent>
+                </Select>
+                {inviteErrors.role && (
+                  <p className="text-[11px] text-danger">{inviteErrors.role.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[12px]">First Name</Label>
+                <Input {...registerInvite("firstName")} placeholder="Jane" />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[12px]">Last Name</Label>
+                <Input {...registerInvite("lastName")} placeholder="Doe" />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button type="submit" className="flex-1" disabled={inviteSubmitting}>
+                  {inviteSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Copy className="h-4 w-4" />
+                    "Send Invite"
                   )}
-                </button>
+                </Button>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Cancel
+                </Button>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <Button className="flex-1" onClick={() => { setTempPassword(null); }}>
-                Add Another
-              </Button>
-              <Button variant="secondary" className="flex-1" onClick={handleClose}>
-                Done
-              </Button>
-            </div>
-          </div>
+            </form>
+          )
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+          // Password creation form
+          tempPassword ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-success/30 bg-success/10 p-4 space-y-2">
+                <p className="text-[13px] font-semibold text-fg">Account created</p>
+                <p className="text-[12px] text-fg-muted">
+                  Share this temporary password with the new staff member. It will not be shown again.
+                </p>
+                <div className="flex items-center gap-2 mt-2 rounded-md border border-border bg-surface px-3 py-2">
+                  <code className="flex-1 text-[13px] font-mono text-fg select-all">
+                    {tempPassword}
+                  </code>
+                  <button
+                    onClick={copyPassword}
+                    className="flex-shrink-0 text-fg-muted hover:text-fg transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={() => { setTempPassword(null); }}>
+                  Add Another
+                </Button>
+                <Button variant="secondary" className="flex-1" onClick={handleClose}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[12px]">First Name *</Label>
+                  <Input {...register("firstName")} placeholder="Jane" />
+                  {errors.firstName && (
+                    <p className="text-[11px] text-danger">{errors.firstName.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[12px]">Last Name *</Label>
+                  <Input {...register("lastName")} placeholder="Doe" />
+                  {errors.lastName && (
+                    <p className="text-[11px] text-danger">{errors.lastName.message}</p>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-1.5">
-                <Label className="text-[12px]">First Name *</Label>
-                <Input {...register("firstName")} placeholder="Jane" />
-                {errors.firstName && (
-                  <p className="text-[11px] text-danger">{errors.firstName.message}</p>
+                <Label className="text-[12px]">Email *</Label>
+                <Input type="email" {...register("email")} placeholder="jane@restaurant.com" />
+                {errors.email && (
+                  <p className="text-[11px] text-danger">{errors.email.message}</p>
                 )}
               </div>
+
               <div className="space-y-1.5">
-                <Label className="text-[12px]">Last Name *</Label>
-                <Input {...register("lastName")} placeholder="Doe" />
-                {errors.lastName && (
-                  <p className="text-[11px] text-danger">{errors.lastName.message}</p>
+                <Label className="text-[12px]">Phone</Label>
+                <Input {...register("phone")} placeholder="+91 98765 43210" />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[12px]">Role *</Label>
+                <Select onValueChange={(v) => setValue("role", v as CreateForm["role"])}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="KITCHEN_STAFF">Kitchen Staff</SelectItem>
+                    <SelectItem value="WAITER">Waiter</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.role && (
+                  <p className="text-[11px] text-danger">{errors.role.message}</p>
                 )}
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[12px]">Email *</Label>
-              <Input type="email" {...register("email")} placeholder="jane@restaurant.com" />
-              {errors.email && (
-                <p className="text-[11px] text-danger">{errors.email.message}</p>
-              )}
-            </div>
+              <div className="rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-[12px] text-fg-muted">
+                A random temporary password will be generated and shown to you. Share it with the staff member after creation.
+              </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[12px]">Phone</Label>
-              <Input {...register("phone")} placeholder="+91 98765 43210" />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[12px]">Role *</Label>
-              <Select onValueChange={(v) => setValue("role", v as CreateForm["role"])}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role…" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="KITCHEN_STAFF">Kitchen Staff</SelectItem>
-                  <SelectItem value="WAITER">Waiter</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.role && (
-                <p className="text-[11px] text-danger">{errors.role.message}</p>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-[12px] text-fg-muted">
-              A random temporary password will be generated and shown to you. Share it with the staff member after creation.
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button type="submit" className="flex-1" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Create Account"
-                )}
-              </Button>
-              <Button type="button" variant="secondary" onClick={handleClose}>
-                Cancel
-              </Button>
-            </div>
-          </form>
+              <div className="flex gap-2 pt-1">
+                <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Create Account"
+                  )}
+                </Button>
+                <Button type="button" variant="secondary" onClick={handleClose}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )
         )}
       </SheetContent>
     </Sheet>
