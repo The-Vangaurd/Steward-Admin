@@ -23,11 +23,9 @@ export const StatusActions = memo(function StatusActions({ order }: StatusAction
   const { captureSnapshot } = useKitchenUndo();
 
   const nextStatuses = ORDER_STATUS_FLOW[order.status];
-  if (!nextStatuses || nextStatuses.length === 0) return null;
-
-  const primaryNext = nextStatuses[0] as OrderStatus;
+  const primaryNext = nextStatuses?.[0] as OrderStatus | undefined;
   const primaryLabel = STATUS_ACTION_LABELS[order.status];
-  
+
   const isPrimaryPending =
     isPending &&
     variables?.orderId === order.id &&
@@ -39,6 +37,7 @@ export const StatusActions = memo(function StatusActions({ order }: StatusAction
 
   // useCallback prevents new function references on every render
   const handlePrimary = useCallback(() => {
+    if (!primaryNext) return;
     captureSnapshot(`#${order.orderNumber} → ${primaryNext}`);
     mutate({ orderId: order.id, status: primaryNext });
   }, [order.id, order.orderNumber, primaryNext, captureSnapshot, mutate]);
@@ -47,6 +46,8 @@ export const StatusActions = memo(function StatusActions({ order }: StatusAction
     captureSnapshot(`#${order.orderNumber} → CANCELLED`);
     mutate({ orderId: order.id, status: "CANCELLED" });
   }, [order.id, order.orderNumber, captureSnapshot, mutate]);
+
+  if (!nextStatuses || nextStatuses.length === 0) return null;
 
   return (
     <div className="flex gap-2 pt-3 mt-2 border-t border-white/[0.06]">

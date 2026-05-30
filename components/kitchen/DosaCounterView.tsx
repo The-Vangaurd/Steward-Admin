@@ -77,15 +77,16 @@ const CapBar = memo(function CapBar({
 }: {
   current: ReturnType<typeof partitionDosaQueue>["current"];
 }) {
-  const safeCurrentOrders = current ?? [];
-
-  const currentQty = useMemo(
-    () =>
-      safeCurrentOrders
+  const currentQty = useMemo
+  (
+    () => {
+      const safeCurrentOrders = current ?? [];
+      return safeCurrentOrders
         .flatMap((o) => o.items)
         .filter((i) => i.name.toLowerCase().includes("dosa") || (i.menuItem as any)?.kitchenType === "TIME_TAKING")
-        .reduce((s, i) => s + i.quantity, 0),
-    [safeCurrentOrders]
+        .reduce((s, i) => s + i.quantity, 0);
+    },
+    [current]
   );
 
   const pct = Math.min(100, (currentQty / CURRENT_DOSA_CAP) * 100);

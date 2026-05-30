@@ -50,25 +50,6 @@ export function TabMenuAppearance({ settings, onChange }: Props) {
         </SettingsRow>
       </SettingsSection>
 
-      <SettingsSection>
-        <SettingsRow
-          label="Custom CSS"
-          description="Advanced: injected into the customer-facing menu page. Use with caution."
-        >
-          <div className="space-y-1.5">
-            <textarea
-              className="w-full h-48 font-mono text-[12px] rounded-md border border-border bg-surface-3 p-3 text-fg placeholder:text-fg-subtle resize-y focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-              placeholder={`/* Example: override card radius */\n.menu-card {\n  border-radius: 8px;\n}`}
-              value={settings.customCss}
-              onChange={(e) => set("customCss", e.target.value)}
-              spellCheck={false}
-            />
-            <p className="text-[11px] text-fg-subtle">
-              CSS is sanitised before injection. Dangerous properties are stripped automatically.
-            </p>
-          </div>
-        </SettingsRow>
-      </SettingsSection>
     </div>
   );
 }

@@ -232,7 +232,7 @@ function CreateStaffSheet({
             </div>
 
             <div className="rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-[12px] text-fg-muted">
-              A temporary password <span className="font-mono font-semibold text-fg">Welcome@123</span> will be set. Share it with the staff member after creation.
+              A random temporary password will be generated and shown to you. Share it with the staff member after creation.
             </div>
 
             <div className="flex gap-2 pt-1">

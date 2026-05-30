@@ -174,7 +174,7 @@ export default function KdsPage() {
     structuralSharing: true,
   });
 
-  const orders = data ?? [];
+  const orders = useMemo(() => data ?? [], [data]);
   const filtered = useMemo(
     () => (typeFilter ? orders.filter((o: any) => o.orderType === typeFilter) : orders),
     [orders, typeFilter]

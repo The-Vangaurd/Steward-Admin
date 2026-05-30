@@ -55,7 +55,6 @@ export const api = axios.create({
 
 // Lazy import to avoid circular dependency between axios.ts ↔ auth.store.ts
 function getAuthStore() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require("@/stores/auth.store").useAuthStore;
 }
 

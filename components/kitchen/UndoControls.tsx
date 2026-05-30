@@ -35,7 +35,7 @@ export function UndoControls({ historyStack, canUndo, onUndo, onApiUndo }: UndoC
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [latestSnapshot?.id]);
+    }, [latestSnapshot?.id, latestSnapshot]);
 
     const handleUndo = useCallback(() => {
         if (!canUndo || secondsLeft === 0) return;

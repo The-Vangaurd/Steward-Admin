@@ -80,7 +80,6 @@ export interface RestaurantSettings {
   showCalories: boolean;
   showPrepTime: boolean;
   showVegBadge: boolean;
-  customCss: string;
 
   // Operations
   taxRate: number;
@@ -116,7 +115,6 @@ export const DEFAULT_SETTINGS: RestaurantSettings = {
   showCalories: true,
   showPrepTime: true,
   showVegBadge: true,
-  customCss: "",
   taxRate: 5,
   serviceCharge: 0,
   serviceChargeLabel: "Service Charge",
@@ -151,12 +149,12 @@ export const GOOGLE_FONTS = [
 export type GoogleFont = typeof GOOGLE_FONTS[number];
 
 export const CURRENCIES = [
-  { value: "INR", label: "INR — ₹ Indian Rupee" },
-  { value: "USD", label: "USD — $ US Dollar" },
-  { value: "EUR", label: "EUR — € Euro" },
-  { value: "GBP", label: "GBP — £ British Pound" },
-  { value: "AED", label: "AED — د.إ UAE Dirham" },
-  { value: "SGD", label: "SGD — S$ Singapore Dollar" },
+  { value: "INR", label: "INR - ₹ Indian Rupee" },
+  { value: "USD", label: "USD - $ US Dollar" },
+  { value: "EUR", label: "EUR - € Euro" },
+  { value: "GBP", label: "GBP - £ British Pound" },
+  { value: "AED", label: "AED - د.إ UAE Dirham" },
+  { value: "SGD", label: "SGD - S$ Singapore Dollar" },
 ] as const;
 
 export const TIMEZONES = [

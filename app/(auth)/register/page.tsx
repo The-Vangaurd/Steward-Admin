@@ -126,10 +126,10 @@ export default function RegisterPage() {
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">Verify your email</h1>
             <p className="text-[13px] text-fg-muted leading-relaxed">
-              We've sent a verification link to <span className="text-fg font-medium font-mono">{registeredEmail}</span>.
+              We&apos;ve sent a verification link to <span className="text-fg font-medium font-mono">{registeredEmail}</span>.
             </p>
             <p className="text-[12px] text-fg-subtle leading-relaxed">
-              Please click the link in the email to activate your account. Once verified, you'll be able to sign in.
+              Please click the link in the email to activate your account. Once verified, you&apos;ll be able to sign in.
             </p>
             <div className="w-full pt-4 space-y-3">
               <Link href="/login" className="block w-full">

@@ -212,7 +212,7 @@ function SearchResults({ query, onClose }: { query: string; onClose: () => void 
     return (
       <div className="flex flex-col items-center gap-2 py-8">
         <Search className="h-8 w-8 text-fg-subtle/40" />
-        <p className="text-[13px] font-medium text-fg-muted">No results for "{query}"</p>
+        <p className="text-[13px] font-medium text-fg-muted">No results for &quot;{query}&quot;</p>
       </div>
     );
   }
