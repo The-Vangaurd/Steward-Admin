@@ -213,7 +213,7 @@ export function TabGeneral({ settings, onChange }: Props) {
       {/* ── Restaurant profile ── */}
       <SettingsSection>
         <SettingsRow label="Restaurant name" description="Displayed to customers across the platform">
-          <Input value={settings.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. SpiceOS Restaurant" />
+          <Input value={settings.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. My Restaurant" />
         </SettingsRow>
         <SettingsRow label="Tagline" description="Short description shown on menu and receipts">
           <Input value={settings.tagline} onChange={(e) => set("tagline", e.target.value)} placeholder="e.g. Authentic flavours since 2010" />

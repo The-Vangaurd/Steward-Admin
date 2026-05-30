@@ -140,7 +140,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               <span className="text-[11px] font-bold text-white">S</span>
             </div>
             <div className="leading-none">
-              <div className="text-[13px] font-semibold text-fg">SpiceOS</div>
+              <div className="text-[13px] font-semibold text-fg">Steward</div>
               <div className="text-[10px] text-fg-subtle mt-0.5">Restaurant Platform</div>
             </div>
           </div>

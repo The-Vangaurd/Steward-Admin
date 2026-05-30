@@ -160,7 +160,7 @@ export default function RegisterPage() {
             <div className="h-7 w-7 grid place-items-center rounded-md bg-accent">
               <span className="text-[11px] font-bold text-white">S</span>
             </div>
-            <div className="text-[13px] font-semibold tracking-tight">SpiceOS</div>
+            <div className="text-[13px] font-semibold tracking-tight">Steward</div>
           </div>
           <Link
             href="/login"
@@ -323,7 +323,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-fg-subtle">
-          <span>© {new Date().getFullYear()} SpiceOS</span>
+          <span>© {new Date().getFullYear()} Steward</span>
           <div className="flex items-center gap-4">
             <a className="hover:text-fg-muted cursor-pointer">Privacy</a>
             <a className="hover:text-fg-muted cursor-pointer">Terms</a>

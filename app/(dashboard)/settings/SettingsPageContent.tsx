@@ -7,11 +7,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useRestaurantSettings, useUpdateRestaurantSettings } from "@/hooks/useRestaurantSettings";
 import { TabGeneral } from "@/components/settings/TabGeneral";
-import { TabBranding } from "@/components/settings/TabBranding";
-import { TabMenuAppearance } from "@/components/settings/TabMenuAppearance";
+import { TabTheme } from "@/components/settings/TabTheme";
 import { TabOperations } from "@/components/settings/TabOperations";
 import { TabStaffNotifications } from "@/components/settings/TabStaffNotifications";
-import { TabShifts } from "@/components/settings/TabShifts";
 import type { RestaurantSettings } from "@/types/settings";
 
 export default function SettingsPageContent() {
@@ -138,12 +136,10 @@ export default function SettingsPageContent() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6 flex-wrap h-auto gap-1 bg-surface border border-border p-1 rounded-lg">
           {[
-            { value: "general",       label: "General" },
-            { value: "branding",      label: "Branding" },
-            { value: "appearance",    label: "Menu Appearance" },
-            { value: "operations",    label: "Operations" },
-            { value: "shifts",        label: "Shifts" },
-            { value: "notifications", label: "Staff & Notifications" },
+            { value: "general",    label: "General" },
+            { value: "theme",      label: "Theme & Menu" },
+            { value: "operations", label: "Operations" },
+            { value: "team",       label: "Team & Notifications" },
           ].map((tab) => (
             <TabsTrigger
               key={tab.value}
@@ -158,19 +154,13 @@ export default function SettingsPageContent() {
         <TabsContent value="general">
           <TabGeneral settings={draft} onChange={patch} />
         </TabsContent>
-        <TabsContent value="branding">
-          <TabBranding settings={draft} onChange={patch} />
-        </TabsContent>
-        <TabsContent value="appearance">
-          <TabMenuAppearance settings={draft} onChange={patch} />
+        <TabsContent value="theme">
+          <TabTheme settings={draft} onChange={patch} />
         </TabsContent>
         <TabsContent value="operations">
           <TabOperations settings={draft} onChange={patch} />
         </TabsContent>
-        <TabsContent value="shifts">
-          <TabShifts />
-        </TabsContent>
-        <TabsContent value="notifications">
+        <TabsContent value="team">
           <TabStaffNotifications settings={draft} onChange={patch} />
         </TabsContent>
       </Tabs>

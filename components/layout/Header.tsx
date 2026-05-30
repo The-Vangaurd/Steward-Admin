@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
-  Menu, Search, Bell, Command, X, ShoppingBag, Circle,
-  LogOut, User, ChevronRight, Loader2, Package,
+  Menu, Search, Bell, X, ShoppingBag, Circle,
+  LogOut, User, ChevronRight, Loader2, Package, Settings as SettingsIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useAuthStore } from "@/stores/auth.store";
 import { useSettingsStore } from "@/stores/settings.store";
 import { useAuth } from "@/hooks/useAuth";
@@ -365,6 +366,15 @@ function UserMenu({ initials, onClose }: { initials: string; onClose: () => void
 
       {/* Actions */}
       <div className="p-1">
+        <Link
+          href="/settings"
+          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-fg hover:bg-surface-2 transition-colors"
+          onClick={onClose}
+        >
+          <SettingsIcon className="h-3.5 w-3.5" />
+          Settings
+        </Link>
+        <div className="border-t border-border my-1" />
         <button
           onClick={logout}
           className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-danger hover:bg-danger/10 transition-colors"
@@ -393,6 +403,11 @@ export function Header({ onMenuClick, title }: HeaderProps) {
   const [notifOpen, setNotifOpen]   = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userOpen, setUserOpen]     = useState(false);
+  const [isMac, setIsMac]           = useState(false);
+
+  useEffect(() => {
+    setIsMac(navigator.userAgent.includes("Mac"));
+  }, []);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef  = useRef<HTMLDivElement>(null);
@@ -458,7 +473,11 @@ export function Header({ onMenuClick, title }: HeaderProps) {
             <Search className="h-3.5 w-3.5" />
             <span className="flex-1 text-left">Search orders, items…</span>
             <span className="flex items-center gap-0.5 text-[10px] text-fg-subtle border border-border rounded px-1 py-0.5">
-              <Command className="h-2.5 w-2.5" />K
+              {isMac ? (
+                <kbd className="not-italic">⌘K</kbd>
+              ) : (
+                <kbd className="not-italic">Ctrl K</kbd>
+              )}
             </span>
           </button>
 

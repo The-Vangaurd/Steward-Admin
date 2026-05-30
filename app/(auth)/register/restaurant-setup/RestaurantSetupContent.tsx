@@ -163,7 +163,7 @@ export default function RestaurantSetupContent() {
             <div className="h-7 w-7 grid place-items-center rounded-md bg-accent">
               <span className="text-[11px] font-bold text-white">S</span>
             </div>
-            <div className="text-[13px] font-semibold tracking-tight">SpiceOS</div>
+            <div className="text-[13px] font-semibold tracking-tight">Steward</div>
           </div>
           <Link
             href="/register"
@@ -256,7 +256,7 @@ export default function RestaurantSetupContent() {
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-fg-subtle">
-          <span>© {new Date().getFullYear()} SpiceOS</span>
+          <span>© {new Date().getFullYear()} Steward</span>
           <div className="flex items-center gap-4">
             <a href="#" aria-label="Privacy policy (coming soon)" className="hover:text-fg-muted">Privacy</a>
             <a href="#" aria-label="Terms of service (coming soon)" className="hover:text-fg-muted">Terms</a>

@@ -80,6 +80,10 @@ export interface RestaurantSettings {
   showCalories: boolean;
   showPrepTime: boolean;
   showVegBadge: boolean;
+  /** Background tint for the customer-facing menu page. Empty string = default dark. */
+  menuBgColor: string;
+  /** Text tint for headings and labels in the customer-facing menu. */
+  menuTextColor: string;
 
   // Operations
   taxRate: number;
@@ -115,6 +119,8 @@ export const DEFAULT_SETTINGS: RestaurantSettings = {
   showCalories: true,
   showPrepTime: true,
   showVegBadge: true,
+  menuBgColor: "",
+  menuTextColor: "",
   taxRate: 5,
   serviceCharge: 0,
   serviceChargeLabel: "Service Charge",

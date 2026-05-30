@@ -251,7 +251,7 @@ export default function LoginPage() {
           <div className="h-7 w-7 grid place-items-center rounded-md bg-accent shadow-[0_0_12px_rgba(139,92,246,0.35)]">
             <span className="text-[11px] font-bold text-white">S</span>
           </div>
-          <div className="text-[14px] font-semibold tracking-tight">SpiceOS</div>
+          <div className="text-[14px] font-semibold tracking-tight">Steward</div>
         </div>
 
         {/* Form area */}
@@ -328,7 +328,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="flex items-center justify-between text-[11px] text-fg-subtle">
-          <span>© 2026 SpiceOS</span>
+          <span>© 2026 Steward</span>
           <div className="flex items-center gap-4">
             <span className="hover:text-fg-muted cursor-not-allowed" title="Coming soon">Privacy</span>
             <span className="hover:text-fg-muted cursor-not-allowed" title="Coming soon">Terms</span>
