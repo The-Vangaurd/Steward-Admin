@@ -1,18 +1,5 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Store, IndianRupee, ShoppingBag, Clock, TrendingUp } from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'sonner';
-import { useAuthStore } from '@/stores/auth.store';
-import { AdminLoginForm, type AdminLoginValues } from '@/components/auth/AdminLoginForm';
-import { StaffLoginForm, type StaffLoginValues } from '@/components/auth/StaffLoginForm';
-import { OAuthButtons } from '@/components/auth/OAuthButtons';
-import { AUTH_TABS, getRedirectPath, type AuthTab } from '@/constants/auth';
-import api from '@/lib/axios';
-import type { ApiSuccess, LoginResponse } from '@/types';
-import { cn } from '@/lib/utils';
+/* Lines 2-16 omitted */
 
 interface StaffLoginResponse extends LoginResponse {
   restaurant: { id: string; name: string; slug: string; restaurantCode: string };
@@ -115,7 +102,7 @@ function RightPanel() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">
-                    {metric.label}
+                    /* Lines 118-119 omitted */
                   </span>
                   <div className={cn("grid h-6 w-6 place-items-center rounded-md border", metric.bg)}>
                     <metric.icon className={cn("h-3 w-3", metric.color)} />
@@ -139,16 +126,33 @@ function RightPanel() {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────----
 
 export default function LoginPage() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { accessToken, user, setAuth } = useAuthStore();
 
-  const [activeTab,   setActiveTab]   = useState<AuthTab>(AUTH_TABS.ADMIN);
-  const [adminError,  setAdminError]  = useState<string | null>(null);
-  const [staffError,  setStaffError]  = useState<string | null>(null);
+  const [activeTab,        setActiveTab]     = useState<AuthTab>(AUTH_TABS.ADMIN);
+  const [adminError,       setAdminError]    = useState<string | null>(null);
+  const [staffError,       setStaffError]    = useState<string | null>(null);
+  const [resendEmail,      setResendEmail]   = useState<string | null>(null);
+  const [resendLoading,    setResendLoading] = useState(false);
+  const [resendSent,       setResendSent]    = useState(false);
+
+  const handleResendVerification = async () => {
+    if (!resendEmail || resendLoading) return;
+    setResendLoading(true);
+    try {
+      await api.post('/auth/resend-verification', { email: resendEmail });
+      setResendSent(true);
+      toast.success('Verification email sent — check your inbox.');
+    } catch {
+      toast.error('Could not resend. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   // Auto-redirect if already authenticated
   useEffect(() => {
@@ -210,16 +214,40 @@ export default function LoginPage() {
         email: values.email,
         password: values.password,
       });
+
+      const role = data.data.user.role;
+
+      // Block kitchen staff / waiters from the Owner/Admin portal
+      if (role === 'KITCHEN_STAFF' || role === 'WAITER') {
+        setAdminError(
+          'This portal is for restaurant owners and admins only. ' +
+          'Staff should use the "Staff" tab and log in with a restaurant code and PIN.'
+        );
+        return;
+      }
+
       setAuth(data.data.accessToken, data.data.user);
       toast.success('Signed in successfully');
       const next = searchParams.get('next');
-      router.push(next ? decodeURIComponent(next) : getRedirectPath(data.data.user.role));
+      router.push(next ? decodeURIComponent(next) : getRedirectPath(role));
     } catch (err: any) {
-      setAdminError(
+      const message =
         err?.response?.data?.message ??
         err?.response?.data?.error?.message ??
-        'Invalid email or password'
-      );
+        'Invalid email or password';
+
+      // Detect email-verification errors and surface resend option
+      const isVerificationError =
+        message.toLowerCase().includes('verify') ||
+        message.toLowerCase().includes('verification');
+
+      if (isVerificationError) {
+        setResendEmail(values.email);
+        setResendSent(false);
+        setAdminError(message);
+      } else {
+        setAdminError(message);
+      }
     }
   };
 
@@ -282,7 +310,30 @@ export default function LoginPage() {
 
             {/* Forms */}
             {activeTab === AUTH_TABS.ADMIN ? (
-              <AdminLoginForm onSubmit={handleAdminSubmit} serverError={adminError} />
+              <>
+                <AdminLoginForm onSubmit={handleAdminSubmit} serverError={adminError} />
+                {/* Resend verification email nudge */}
+                {resendEmail && !resendSent && (
+                  <div className="mt-3 rounded-lg border border-warning/30 bg-warning/8 px-3 py-2.5 flex items-center justify-between gap-3">
+                    <p className="text-[11px] text-warning">
+                      Did not receive the email?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resendLoading}
+                      className="text-[11px] font-semibold text-warning underline underline-offset-2 whitespace-nowrap disabled:opacity-50"
+                    >
+                      /* Lines 340-341 omitted */
+                    </button>
+                  </div>
+                )}
+                {resendSent && (
+                  <div className="mt-3 rounded-lg border border-success/30 bg-success/8 px-3 py-2.5 text-[11px] text-success">
+                    ✓ Verification email sent — check your inbox.
+                  </div>
+                )}
+              </>
             ) : (
               <StaffLoginForm onSubmit={handleStaffSubmit} serverError={staffError} />
             )}
@@ -309,13 +360,7 @@ export default function LoginPage() {
                   <p className="text-[11px] text-fg-muted mt-0.5">Get set up in under a minute.</p>
                 </div>
                 <Link href="/register">
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 rounded-lg border border-border bg-bg px-3 py-1.5 text-[12px] font-medium text-fg hover:bg-surface-2 hover:border-border-strong transition-all whitespace-nowrap"
-                  >
-                    <Store className="h-3 w-3" />
-                    Register
-                  </button>
+                  /* Lines 376-383 omitted */
                 </Link>
               </div>
             )}

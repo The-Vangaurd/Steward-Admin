@@ -1,19 +1,5 @@
 'use client';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Loader2, Eye, EyeOff, ArrowRight, Store, ChevronLeft } from 'lucide-react';
-import { toast } from 'sonner';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useAuthStore } from '@/stores/auth.store';
-import api from '@/lib/axios';
-import type { ApiSuccess } from '@/types';
+/* Lines 2-17 omitted */
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -68,6 +54,23 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+
+  const handleResendVerification = async () => {
+    if (!registeredEmail || resendLoading) return;
+    setResendLoading(true);
+    setResendSent(false);
+    try {
+      await api.post('/auth/resend-verification', { email: registeredEmail });
+      setResendSent(true);
+      toast.success('Verification email sent again — check your inbox.');
+    } catch {
+      toast.error('Could not resend the verification email. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const {
     register,
@@ -137,11 +140,28 @@ export default function RegisterPage() {
                   Go to Sign In <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
+
+              {/* Resend verification */}
+              {resendSent ? (
+                <p className="text-[12px] text-success text-center">
+                  ✓ Email sent — check your inbox.
+                </p>
+              ) : (
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                  className="w-full text-[12px] text-fg-muted hover:text-fg underline underline-offset-2 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {resendLoading ? 'Sending…' : 'Resend verification email'}
+                </button>
+              )}
+
+              {/* Wrong email — go back and re-register */}
               <button
-                onClick={() => setRegisteredEmail(null)}
-                className="text-[12px] text-fg-muted hover:text-fg underline underline-offset-2 transition-colors cursor-pointer"
+                onClick={() => { setRegisteredEmail(null); setResendSent(false); }}
+                className="w-full text-[12px] text-fg-subtle hover:text-fg-muted underline underline-offset-2 transition-colors cursor-pointer"
               >
-                Back to sign up
+                Wrong email? Go back and change it
               </button>
             </div>
           </div>
@@ -221,7 +241,7 @@ export default function RegisterPage() {
                   {...register('restaurantName')}
                 />
                 {errors.restaurantName && (
-                  <p className="text-[11px] text-danger mt-1">{errors.restaurantName.message}</p>
+                  /* Lines 258-259 omitted */
                 )}
               </div>
 
@@ -237,7 +257,7 @@ export default function RegisterPage() {
                   {...register('ownerName')}
                 />
                 {errors.ownerName && (
-                  <p className="text-[11px] text-danger mt-1">{errors.ownerName.message}</p>
+                  /* Lines 274-275 omitted */
                 )}
               </div>
 
@@ -254,7 +274,7 @@ export default function RegisterPage() {
                   {...register('email')}
                 />
                 {errors.email && (
-                  <p className="text-[11px] text-danger mt-1">{errors.email.message}</p>
+                  /* Lines 291-292 omitted */
                 )}
               </div>
 
@@ -263,48 +283,16 @@ export default function RegisterPage() {
                 <Label htmlFor="reg-password" className="text-[12px] font-medium text-fg-muted">
                   Password
                 </Label>
-                <div className="relative">
-                  <Input
-                    id="reg-password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Min 8 chars, 1 uppercase, 1 number"
-                    autoComplete="new-password"
-                    className="pr-10"
-                    {...register('password')}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md text-fg-subtle hover:bg-surface-3 hover:text-fg-muted"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-3.5 w-3.5" />
-                    ) : (
-                      <Eye className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="text-[11px] text-danger mt-1">{errors.password.message}</p>
-                )}
+                /* Lines 300-325 omitted */
               </div>
 
-              {/* Server error */}
+              {/* Line 327 omitted */}
               {serverError && (
-                <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-[12px] text-danger">
-                  {serverError}
-                </div>
+                /* Lines 329-332 omitted */
               )}
 
               <Button type="submit" size="lg" disabled={isSubmitting || googleLoading} className="w-full mt-2">
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    Create restaurant <ArrowRight className="h-3.5 w-3.5" />
-                  </>
-                )}
+                /* Lines 335-342 omitted */
               </Button>
             </form>
 
@@ -372,10 +360,7 @@ export default function RegisterPage() {
                 { icon: '✦', label: 'Staff onboarding with role-based access' },
                 { icon: '✦', label: 'Live analytics and revenue tracking' },
               ].map((f, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <span className="text-[10px] text-accent mt-0.5 shrink-0">{f.icon}</span>
-                  <span className="text-[12px] text-fg-muted">{f.label}</span>
-                </div>
+                /* Lines 409-413 omitted */
               ))}
             </div>
           </div>

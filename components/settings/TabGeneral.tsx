@@ -1,8 +1,10 @@
 "use client";
+// restaurant-code section reads from auth store (not settings API — code is set by backend at registration)
 
 import { useState } from "react";
+import { useAuthStore } from "@/stores/auth.store";
 import {
-  Copy, Check, ExternalLink, Download, QrCode, Link2,
+  Copy, Check, ExternalLink, Download, QrCode, Link2, Key,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -193,7 +195,7 @@ function MenuQrSection({ slug, restaurantName }: MenuQrSectionProps) {
   );
 }
 
-// ─── TabGeneral ───────────────────────────────────────────────────────────────
+// ─── TabGeneral ─────────────────────────────────────────────────────────────--
 
 interface Props {
   settings: RestaurantSettings;
@@ -204,8 +206,65 @@ export function TabGeneral({ settings, onChange }: Props) {
   const set = <K extends keyof RestaurantSettings>(key: K, val: RestaurantSettings[K]) =>
     onChange({ [key]: val } as Partial<RestaurantSettings>);
 
+  const restaurant = useAuthStore((s) => s.restaurant);
+  const restaurantCode = restaurant?.restaurantCode ?? null;
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  const handleCopyCode = async () => {
+    if (!restaurantCode) return;
+    try {
+      await navigator.clipboard.writeText(restaurantCode);
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = restaurantCode;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
+
   return (
     <div className="space-y-6">
+
+      {/* ── Restaurant code — staff use this to clock in ── */}
+      <div className="rounded-xl border border-border bg-surface px-5 py-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Key className="h-4 w-4 text-fg-subtle" />
+          <span className="text-[13px] font-semibold text-fg">Restaurant code</span>
+        </div>
+        {restaurantCode ? (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-3 rounded-lg border border-border bg-surface-2 px-4 py-2.5">
+                <span className="text-[22px] font-bold font-mono tracking-[0.25em] text-fg select-all">
+                  {restaurantCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyCode}
+                  title="Copy code"
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-[11px] font-medium text-fg hover:bg-surface-2 transition-colors"
+                >
+                  {codeCopied
+                    ? <Check className="h-3.5 w-3.5 text-green-500" />
+                    : <Copy className="h-3.5 w-3.5" />}
+                  {codeCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+            <p className="text-[11px] text-fg-subtle max-w-xs">
+              Share this code with your staff. They enter it on the Staff login tab together with their 4-digit PIN to clock in.
+            </p>
+          </div>
+        ) : (
+          <p className="text-[12px] text-fg-subtle">
+            Your restaurant code will appear here once your profile is saved.
+          </p>
+        )}
+      </div>
 
       {/* ── Menu link & QR code — read-only, shown for every restaurant ── */}
       <MenuQrSection slug={settings.slug} restaurantName={settings.name} />
