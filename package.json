@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
+    "build:cloudflare": "npx @opennextjs/cloudflare build && node copy-worker.js",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx --color"
   },

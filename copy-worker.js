@@ -6,7 +6,7 @@ const dest = path.join(__dirname, '.open-next', '_worker.js');
 
 if (fs.existsSync(src)) {
   fs.copyFileSync(src, dest);
-  console.log('Successfully copied .open-next/worker.js to .open-next/assets/_worker.js');
+  console.log('Successfully copied .open-next/worker.js to .open-next/_worker.js');
 } else {
   console.error('Error: .open-next/worker.js not found');
   process.exit(1);
