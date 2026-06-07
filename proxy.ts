@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// ── Minimal middleware ────────────────────────────────────────────────────────
+// ── Minimal proxy ────────────────────────────────────────────────────────────
 //
 // Auth protection is handled entirely client-side by the useRequireAuth hook
 // (stores/auth.store + hooks/useAuth.ts). Attempting to enforce auth here
@@ -17,7 +17,7 @@ import type { NextRequest } from 'next/server';
 // This file exists solely to redirect the bare root path ( / ) to /login so
 // users don't land on a blank page. Everything else passes through untouched.
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Redirect bare root to login

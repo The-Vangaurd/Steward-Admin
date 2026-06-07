@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import SettingsPageContent from "./SettingsPageContent";
 
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default function SettingsPage() {
