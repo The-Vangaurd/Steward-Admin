@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import VerifyEmailContent from './VerifyEmailContent';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default function VerifyEmailPage() {
