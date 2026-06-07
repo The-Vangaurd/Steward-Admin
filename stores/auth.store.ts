@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { User } from '@/types';
-import { USER_STORAGE_KEY, RESTAURANT_STORAGE_KEY } from '@/constants/auth';
+import { USER_STORAGE_KEY, RESTAURANT_STORAGE_KEY, TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY } from '@/constants/auth';
 
 // ── Security note ──────────────────────────────────────────────────────────────
 //
@@ -27,7 +27,6 @@ export interface Restaurant {
 // ─── Store interface ──────────────────────────────────────────────────────────
 
 interface AuthStore {
-  /** In-memory only — never written to localStorage */
   accessToken: string | null;
   /** Non-sensitive profile — persisted for immediate UI render on refresh */
   user: User | null;
@@ -35,9 +34,9 @@ interface AuthStore {
   restaurant: Restaurant | null;
 
   /** Called after a successful email/password login or silent refresh. */
-  setAuth: (token: string, user: User, restaurant?: Restaurant | null | undefined) => void;
+  setAuth: (token: string, user: User, restaurant?: Restaurant | null | undefined, refreshToken?: string | null) => void;
   /** Called by the silent-refresh interceptor — only updates the token. */
-  setAccessToken: (token: string) => void;
+  setAccessToken: (token: string, refreshToken?: string | null) => void;
   /** Hard logout — clears all client state and storage. */
   clearAuth: () => void;
 }
@@ -75,13 +74,12 @@ function remove(key: string): void {
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useAuthStore = create<AuthStore>((set) => ({
-  // accessToken intentionally NOT seeded from storage.
-  // It must come from the silent refresh flow so we always hold a fresh JWT.
-  accessToken: null,
+  accessToken: read<string>(TOKEN_STORAGE_KEY),
   user: read<User>(USER_STORAGE_KEY),
   restaurant: read<Restaurant>(RESTAURANT_STORAGE_KEY),
 
-  setAuth: (token, user, restaurant = undefined) => {
+  setAuth: (token, user, restaurant = undefined, refreshToken = null) => {
+    write(TOKEN_STORAGE_KEY, token);
     write(USER_STORAGE_KEY, user);
     if (restaurant !== undefined) {
       if (restaurant) {
@@ -90,6 +88,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
         remove(RESTAURANT_STORAGE_KEY);
       }
     }
+    if (refreshToken) {
+      write(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+    }
     set((state) => ({
       accessToken: token,
       user,
@@ -97,11 +98,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }));
   },
 
-  setAccessToken: (token) => {
+  setAccessToken: (token, refreshToken = null) => {
+    write(TOKEN_STORAGE_KEY, token);
+    if (refreshToken) {
+      write(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+    }
     set({ accessToken: token });
   },
 
   clearAuth: () => {
+    remove(TOKEN_STORAGE_KEY);
+    remove(REFRESH_TOKEN_STORAGE_KEY);
     remove(USER_STORAGE_KEY);
     remove(RESTAURANT_STORAGE_KEY);
     set({ accessToken: null, user: null, restaurant: null });

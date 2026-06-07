@@ -31,3 +31,9 @@ export const USER_STORAGE_KEY = 'auth-user';
 
 /** Local-storage key for persisted restaurant info (non-sensitive). */
 export const RESTAURANT_STORAGE_KEY = 'auth-restaurant';
+
+/** Local-storage key for persisted access token. */
+export const TOKEN_STORAGE_KEY = 'auth-token';
+
+/** Local-storage key for persisted refresh token fallback. */
+export const REFRESH_TOKEN_STORAGE_KEY = 'auth-refresh-token';

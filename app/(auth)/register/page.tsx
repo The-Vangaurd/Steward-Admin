@@ -103,7 +103,7 @@ export default function RegisterPage() {
         return;
       }
 
-      setAuth(data.data.accessToken, data.data.user, data.data.restaurant);
+      setAuth(data.data.accessToken, data.data.user, data.data.restaurant, (data.data as any).refreshToken);
       toast.success(`Welcome! "${data.data.restaurant.name}" is ready.`);
       router.push('/dashboard');
     } catch (err: any) {

@@ -186,7 +186,7 @@ export default function LoginPageContent() {
           { code },
         );
 
-        setAuth(data.data.accessToken, data.data.user, data.data.restaurant ?? null);
+        setAuth(data.data.accessToken, data.data.user, data.data.restaurant ?? null, (data.data as any).refreshToken);
         toast.success('Signed in with Google');
 
         const newUrl = new URL(window.location.href);
@@ -233,7 +233,7 @@ export default function LoginPageContent() {
 
       // Owner/admin login does not include a restaurant payload, so clear any
       // stale restaurant info from a previous session.
-      setAuth(data.data.accessToken, data.data.user, null);
+      setAuth(data.data.accessToken, data.data.user, null, (data.data as any).refreshToken);
       toast.success('Signed in successfully');
       const next = searchParams.get('next');
       router.push(next ? decodeURIComponent(next) : getRedirectPath(role));
@@ -259,7 +259,7 @@ export default function LoginPageContent() {
         restaurantCode: values.restaurantCode,
         pin: values.pin,
       });
-      setAuth(data.data.accessToken, data.data.user, data.data.restaurant);
+      setAuth(data.data.accessToken, data.data.user, data.data.restaurant, (data.data as any).refreshToken);
       // Remember the restaurant code so staff don't need to re-enter it next time
       saveRestaurantCode(values.restaurantCode, data.data.restaurant?.name);
       toast.success(`Welcome, ${data.data.user.firstName}!`);

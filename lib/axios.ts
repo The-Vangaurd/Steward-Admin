@@ -100,15 +100,17 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       return new Promise(function (resolve, reject) {
+        const localRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('auth-refresh-token') : null;
         axios
           .post(
             "/v1/auth/refresh",
-            {},
+            { refreshToken: localRefreshToken },
             { withCredentials: true, headers: getCsrfHeader() }
           )
           .then(({ data }) => {
             const newAccessToken: string = data.data.accessToken;
-            useAuthStore.getState().setAccessToken(newAccessToken);
+            const newRefreshToken: string = data.data.refreshToken;
+            useAuthStore.getState().setAccessToken(newAccessToken, newRefreshToken);
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             processQueue(null, newAccessToken);
             resolve(api(originalRequest));
