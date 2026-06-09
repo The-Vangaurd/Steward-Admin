@@ -9,7 +9,10 @@ import { useAuthStore } from "@/stores/auth.store";
 //
 // We validate eagerly so engineers see a clear error rather than a silent
 // infinite spinner in production.
-const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+const rawApiUrl =
+  typeof process !== "undefined" && process.env
+    ? process.env.NEXT_PUBLIC_API_URL
+    : undefined;
 
 if (!rawApiUrl) {
   // In the browser this surfaces as a console error; in SSR it logs server-side.
