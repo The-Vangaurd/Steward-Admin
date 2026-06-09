@@ -12,6 +12,7 @@ function LoginFallback() {
 }
 
 export default function LoginPage() {
+  console.log("[DIAGNOSTIC] LoginPage server component executing (before Suspense/JSX return)");
   return (
     <Suspense fallback={<LoginFallback />}>
       <LoginPageContent />

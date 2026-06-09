@@ -1,5 +1,7 @@
 "use client";
 
+console.log("[DIAGNOSTIC] providers/providers.tsx module loaded");
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useState, type ReactNode } from "react";
