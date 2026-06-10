@@ -4,7 +4,7 @@ const reactHooks = require('eslint-plugin-react-hooks');
 
 module.exports = [
   // Ignore common build and dependency folders
-  { ignores: ['node_modules/**', '.next/**', 'dist/**'] },
+  { ignores: ['node_modules/**', '.next/**', 'dist/**', '.wrangler/**'] },
 
   // TypeScript files
   {
