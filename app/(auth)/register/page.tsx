@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ApiSuccess, User } from '@/types';
+import { API_URL } from '@/lib/config/env';
 
 const registerSchema = z.object({
   restaurantName: z.string().min(2, 'Restaurant name must be at least 2 characters').max(255),
@@ -83,11 +84,17 @@ export default function RegisterPage() {
     }
   };
 
+  const [googleBaseUrl, setGoogleBaseUrl] = useState('');
+
+  useEffect(() => {
+    setGoogleBaseUrl(API_URL.replace(/\/v\d+\/?$/, ''));
+  }, []);
+
   const handleGoogleRegister = () => {
+    if (!googleBaseUrl) return;
     setGoogleLoading(true);
-    const base = (typeof process !== "undefined" ? process.env.NEXT_PUBLIC_API_URL : undefined)?.replace(/\/v\d+\/?$/, '') ?? 'http://localhost:4000';
     const redirectUri = typeof window !== 'undefined' ? window.location.origin : '';
-    window.location.href = `${base}/v1/auth/google?intent=register&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location.href = `${googleBaseUrl}/v1/auth/google?intent=register&redirect_uri=${encodeURIComponent(redirectUri)}`;
   };
 
   const onSubmit = async (values: RegisterForm) => {

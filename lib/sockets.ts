@@ -1,38 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-
-function getWsUrl(): string {
-  const envWsUrl = process.env.NEXT_PUBLIC_WS_URL;
-  const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  // If the API URL is explicitly configured to a remote server, we should NOT
-  // connect to localhost for WebSockets, even if we are on localhost ourselves
-  // or if NEXT_PUBLIC_WS_URL is left at its default localhost value.
-  if (envApiUrl && !envApiUrl.includes('localhost') && !envApiUrl.includes('127.0.0.1')) {
-    if (!envWsUrl || envWsUrl.includes('localhost') || envWsUrl.includes('127.0.0.1')) {
-      return envApiUrl.replace(/\/v\d+\/?$/, '');
-    }
-  }
-
-  if (envWsUrl) return envWsUrl;
-  if (envApiUrl) return envApiUrl.replace(/\/v\d+\/?$/, '');
-
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:4000';
-  }
-  // In production, NEXT_PUBLIC_WS_URL must be set as a Vercel environment
-  // variable. Returning '' causes an obvious connection failure rather than
-  // silently using a stale hardcoded URL that breaks if the backend moves.
-  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
-    console.error(
-      '[Steward] CRITICAL: NEXT_PUBLIC_WS_URL is not set. ' +
-      'Socket connections will fail. ' +
-      'Set this variable in Vercel (Settings → Environment Variables) and redeploy.'
-    );
-  }
-  return '';
-}
-
-const WS_URL = getWsUrl();
+import { WS_URL } from "./config/env";
 
 let socket: Socket | null = null;
 let activeConsumers = 0;

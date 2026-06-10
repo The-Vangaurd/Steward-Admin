@@ -12,17 +12,10 @@ import { SettingsSection, SettingsRow } from "./SettingsShell";
 import type { RestaurantSettings } from "@/types/settings";
 import { CURRENCIES, TIMEZONES } from "@/types/settings";
 
-// ─── Menu URL helper ──────────────────────────────────────────────────────────
-// Reads NEXT_PUBLIC_MENU_URL set in Vercel env vars.
-// Falls back to port-swap for local dev (admin on :3000, menu on :3001).
+import { MENU_URL } from "@/lib/config/env";
 
 function getMenuBaseUrl(): string {
-  const envUrl = process.env.NEXT_PUBLIC_MENU_URL;
-  if (envUrl) return envUrl.replace(/\/$/, "");
-  if (typeof window !== "undefined") {
-    return window.location.origin.replace(":3000", ":3001");
-  }
-  return "";
+  return MENU_URL.replace(/\/$/, "");
 }
 
 // ─── QR code URL ──────────────────────────────────────────────────────────────

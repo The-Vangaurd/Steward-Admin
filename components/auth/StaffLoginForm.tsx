@@ -8,6 +8,7 @@ import { Loader2, ArrowRight, Delete, RefreshCw, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { API_URL } from '@/lib/config/env';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -190,11 +191,16 @@ export function StaffLoginForm({ onSubmit, serverError }: StaffLoginFormProps) {
     await onSubmit(values);
   });
 
+  const [googleBaseUrl, setGoogleBaseUrl] = useState('');
+
+  useEffect(() => {
+    setGoogleBaseUrl(API_URL.replace(/\/v\d+\/?$/, ''));
+  }, []);
+
   const handleGoogleSignIn = () => {
+    if (!googleBaseUrl) return;
     setGoogleLoading(true);
-    const base =
-      (typeof process !== "undefined" ? process.env.NEXT_PUBLIC_API_URL : undefined)?.replace(/\/v\d+\/?$/, '') ?? 'http://localhost:4000';
-    window.location.href = `${base}/v1/auth/google?role=staff`;
+    window.location.href = `${googleBaseUrl}/v1/auth/google?role=staff`;
   };
 
   const handleChangeRestaurant = () => {

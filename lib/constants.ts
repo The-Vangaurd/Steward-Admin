@@ -1,27 +1,7 @@
-// FIX: Removed NEXT_PUBLIC_BACKEND_URL — redundant alias for NEXT_PUBLIC_API_URL.
-// Having two variables that do the same thing creates confusion: if only one is
-// set in Vercel, the fallback chain silently uses the other, hiding misconfig.
-// Standardized to NEXT_PUBLIC_API_URL everywhere. Update Vercel env accordingly.
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:4000/v1";
+import { API_URL, WS_URL as CONFIG_WS_URL } from "./config/env";
 
-const getWsUrl = (): string => {
-  const envWsUrl = process.env.NEXT_PUBLIC_WS_URL;
-  const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  if (envApiUrl && !envApiUrl.includes('localhost') && !envApiUrl.includes('127.0.0.1')) {
-    if (!envWsUrl || envWsUrl.includes('localhost') || envWsUrl.includes('127.0.0.1')) {
-      return envApiUrl.replace(/\/v\d+\/?$/, '');
-    }
-  }
-
-  return envWsUrl ?? API_BASE_URL.replace(/\/v\d+\/?$/, "");
-};
-
-// Strip the /v1 path segment to get the bare socket server URL.
-// e.g. "http://localhost:4000/v1" → "http://localhost:4000"
-export const WS_URL = getWsUrl();
+export const API_BASE_URL = API_URL;
+export const WS_URL = CONFIG_WS_URL;
 
 // REMOVED: RESTAURANT_ID — slugs are now dynamic from the URL.
 // Use the `slug` parameter from `useParams()` or route props instead.

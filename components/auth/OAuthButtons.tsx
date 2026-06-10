@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/config/env";
 
 const GOOGLE_ICON = (
   <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -30,15 +31,19 @@ interface OAuthButtonsProps {
 
 export function OAuthButtons({ apiUrl }: OAuthButtonsProps) {
   const [loading, setLoading] = useState(false);
+  const [base, setBase] = useState("");
 
-  const base = apiUrl
-    ?? (typeof process !== "undefined" ? process.env.NEXT_PUBLIC_API_URL : undefined)?.replace(/\/v\d+\/?$/, "")
-    ?? "http://localhost:4000";
+  useEffect(() => {
+    const resolvedBase = apiUrl
+      ?? API_URL.replace(/\/v\d+\/?$/, "")
+      ?? "http://localhost:4000";
+    setBase(resolvedBase);
+  }, [apiUrl]);
 
   const handleGoogleSignIn = () => {
+    if (!base) return;
     setLoading(true);
     // Redirect to backend OAuth initiation endpoint
-    // The backend will redirect back to /login#access_token=...&refresh_token=...
     const redirectUri = typeof window !== "undefined" ? window.location.origin : "";
     window.location.href = `${base}/v1/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
   };
@@ -47,7 +52,7 @@ export function OAuthButtons({ apiUrl }: OAuthButtonsProps) {
     <div className="w-full space-y-2">
       <button
         onClick={handleGoogleSignIn}
-        disabled={loading}
+        disabled={loading || !base}
         className="w-full flex items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-2.5 text-[13px] font-medium text-fg hover:bg-surface-2 hover:border-border-strong transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading ? (

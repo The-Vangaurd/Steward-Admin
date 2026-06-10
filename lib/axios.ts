@@ -3,43 +3,7 @@ import { getCsrfHeader } from "@/lib/auth/csrf";
 import { API_BASE_URL } from "@/lib/constants";
 import { useAuthStore } from "@/stores/auth.store";
 
-// ── API URL validation ────────────────────────────────────────────────────────
-// NEXT_PUBLIC_API_URL is embedded at build time by Next.js. If it is missing
-// the entire settings page will hang on isLoading forever, because every
-// request goes to "undefined/settings" which never resolves.
-//
-// We validate eagerly so engineers see a clear error rather than a silent
-// infinite spinner in production.
-const rawApiUrl =
-  typeof process !== "undefined" && process.env
-    ? process.env.NEXT_PUBLIC_API_URL
-    : undefined;
 
-if (!rawApiUrl) {
-  // In the browser this surfaces as a console error; in SSR it logs server-side.
-  // We do NOT throw here because it would crash the Next.js build — instead we
-  // surface it visibly so the deployed app shows a clear error state.
-  console.error(
-    "[Steward] CRITICAL: NEXT_PUBLIC_API_URL is not set. " +
-    "All API calls will fail. " +
-    "Set this variable in Vercel (Settings → Environment Variables) " +
-    "and redeploy."
-  );
-}
-
-// Guard against a placeholder localhost URL leaking into production builds.
-// Vercel sets NODE_ENV=production during `next build`.
-if (
-  typeof process !== "undefined" &&
-  process.env.NODE_ENV === "production" &&
-  rawApiUrl &&
-  (rawApiUrl.includes("localhost") || rawApiUrl.includes("127.0.0.1"))
-) {
-  console.error(
-    "[Steward] CRITICAL: NEXT_PUBLIC_API_URL points to localhost in a " +
-    "production build. Set the real backend URL in Vercel Environment Variables."
-  );
-}
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
