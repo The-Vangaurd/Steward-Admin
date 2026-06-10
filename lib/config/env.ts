@@ -10,19 +10,26 @@ const rawMenuUrl = process.env.NEXT_PUBLIC_MENU_URL;
 
 const isProd = process.env.NODE_ENV === "production";
 
-function validate(name: string, value: string | undefined): string {
-  if (!value) {
+function validate(name: string, value: string | undefined, fallback: string): string {
+  const val = value || fallback;
+  if (!val) {
     throw new Error(`[Steward] CRITICAL: Environment variable ${name} is required but missing.`);
   }
-  if (isProd && (value.includes("localhost") || value.includes("127.0.0.1"))) {
-    throw new Error(`[Steward] CRITICAL: Environment variable ${name} points to localhost in a production build.`);
+  if (isProd && (val.includes("localhost") || val.includes("127.0.0.1"))) {
+    // Only throw during the local build/prerender phase to prevent deploying a bad build.
+    // Never crash the runtime in the cloud (where process.env.CF_PAGES is active) or in the browser.
+    if (typeof window === "undefined" && !process.env.CF_PAGES) {
+      throw new Error(`[Steward] CRITICAL: Environment variable ${name} points to localhost in a production build.`);
+    } else {
+      console.warn(`[Steward] WARNING: Environment variable ${name} points to localhost in production: ${val}`);
+    }
   }
-  return value;
+  return val;
 }
 
-export const API_URL = validate("NEXT_PUBLIC_API_URL", rawApiUrl);
-export const WS_URL = validate("NEXT_PUBLIC_WS_URL", rawWsUrl);
-export const MENU_URL = validate("NEXT_PUBLIC_MENU_URL", rawMenuUrl);
+export const API_URL = validate("NEXT_PUBLIC_API_URL", rawApiUrl, "https://steward-backend-qwd2.onrender.com/v1");
+export const WS_URL = validate("NEXT_PUBLIC_WS_URL", rawWsUrl, "https://steward-backend-qwd2.onrender.com");
+export const MENU_URL = validate("NEXT_PUBLIC_MENU_URL", rawMenuUrl, "https://steward-menu.pages.dev");
 
 // Startup diagnostics (Only runs server-side during module evaluation)
 if (typeof window === "undefined") {
