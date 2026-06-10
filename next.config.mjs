@@ -1,15 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/v1';
-    const targetUrl = backendUrl.endsWith('/v1') ? backendUrl.slice(0, -3) : backendUrl;
-    return [
-      {
-        source: '/v1/:path*',
-        destination: `${targetUrl}/v1/:path*`,
-      },
-    ];
-  },
   images: {
     remotePatterns: [
       { protocol: 'http',  hostname: 'localhost' },

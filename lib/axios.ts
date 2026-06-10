@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getCsrfHeader } from "@/lib/auth/csrf";
+import { API_BASE_URL } from "@/lib/constants";
 import { useAuthStore } from "@/stores/auth.store";
 
 // ── API URL validation ────────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ if (
 }
 
 export const api = axios.create({
-  baseURL: "/v1",
+  baseURL: API_BASE_URL,
   /**
    * withCredentials: true
    *
@@ -106,7 +107,7 @@ api.interceptors.response.use(
         const localRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('auth-refresh-token') : null;
         axios
           .post(
-            "/v1/auth/refresh",
+            `${API_BASE_URL}/auth/refresh`,
             { refreshToken: localRefreshToken },
             { withCredentials: true, headers: getCsrfHeader() }
           )
