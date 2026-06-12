@@ -1,7 +1,7 @@
 name = "steward-admin"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".open-next"
+pages_build_output_dir = ".vercel/output/static"
 
 [vars]
 NEXT_PUBLIC_API_URL = "https://steward-backend-qwd2.onrender.com/v1"
