@@ -3,6 +3,8 @@ import { Loader2 } from 'lucide-react';
 import RestaurantSetupContent from './RestaurantSetupContent';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
+
 
 export default function RestaurantSetupPage() {
   return (
