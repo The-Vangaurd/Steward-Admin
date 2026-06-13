@@ -14,6 +14,9 @@ import { TabStaffNotifications } from "@/components/settings/TabStaffNotificatio
 import { TabBranding } from "@/components/settings/TabBranding";
 import { TabShifts } from "@/components/settings/TabShifts";
 import { TabSecurity } from "@/components/settings/TabSecurity";
+import { TabPayments } from "@/components/settings/TabPayments";
+import { TabOrderTypes } from "@/components/settings/TabOrderTypes";
+import { TabCustomerExperience } from "@/components/settings/TabCustomerExperience";
 import type { RestaurantSettings } from "@/types/settings";
 
 export default function SettingsPageContent() {
@@ -89,6 +92,9 @@ export default function SettingsPageContent() {
     { value: "theme",      label: "Theme & Menu" },
     { value: "operations", label: "Operations" },
     { value: "team",       label: "Team & Notifications" },
+    { value: "payments",   label: "Payments" },
+    { value: "ordering",   label: "Ordering & Tables" },
+    { value: "customer",   label: "Customer Experience" },
     { value: "branding",   label: "Branding" },
     { value: "shifts",     label: "Shifts" },
   ];
@@ -199,6 +205,15 @@ export default function SettingsPageContent() {
         </TabsContent>
         <TabsContent value="team">
           <TabStaffNotifications settings={draft} onChange={patch} />
+        </TabsContent>
+        <TabsContent value="payments">
+          <TabPayments settings={draft} onChange={patch} />
+        </TabsContent>
+        <TabsContent value="ordering">
+          <TabOrderTypes settings={draft} onChange={patch} />
+        </TabsContent>
+        <TabsContent value="customer">
+          <TabCustomerExperience settings={draft} onChange={patch} />
         </TabsContent>
         <TabsContent value="branding">
           <TabBranding settings={draft} onChange={patch} />

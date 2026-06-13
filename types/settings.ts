@@ -103,6 +103,33 @@ export interface RestaurantSettings {
   // Kitchen
   /** Max dosa quantity for the current batch (Dosa Counter). Default: 8 */
   maxDosaCount: number;
+
+  // Payments
+  acceptsCash: boolean;
+  acceptsCard: boolean;
+  acceptsUpi: boolean;
+  acceptsOnline: boolean;
+  upiId: string;
+  gstin: string;
+  fssaiNumber: string;
+  receiptFooter: string;
+  showTaxBreakdown: boolean;
+
+  // Order Types & Tables
+  dineInEnabled: boolean;
+  takeawayEnabled: boolean;
+  deliveryEnabled: boolean;
+  tableCount: number;
+  tablePrefix: string;
+  minimumOrderAmount: number;
+  allowOrderNotes: boolean;
+
+  // Customer Experience
+  thankYouMessage: string;
+  whatsappNumber: string;
+  googleMapsUrl: string;
+  instagramHandle: string;
+  enableFeedback: boolean;
 }
 
 export const DEFAULT_SETTINGS: RestaurantSettings = {
@@ -137,6 +164,33 @@ export const DEFAULT_SETTINGS: RestaurantSettings = {
   notifyOnLowStock: false,
   notifyEmail: "",
   maxDosaCount: 8,
+
+  // Payments
+  acceptsCash: true,
+  acceptsCard: true,
+  acceptsUpi: true,
+  acceptsOnline: false,
+  upiId: "",
+  gstin: "",
+  fssaiNumber: "",
+  receiptFooter: "Thank you for dining with us!",
+  showTaxBreakdown: true,
+
+  // Order Types & Tables
+  dineInEnabled: true,
+  takeawayEnabled: true,
+  deliveryEnabled: false,
+  tableCount: 10,
+  tablePrefix: "Table",
+  minimumOrderAmount: 0,
+  allowOrderNotes: true,
+
+  // Customer Experience
+  thankYouMessage: "Your order has been placed! We'll have it ready soon.",
+  whatsappNumber: "",
+  googleMapsUrl: "",
+  instagramHandle: "",
+  enableFeedback: false,
 };
 
 export const GOOGLE_FONTS = [

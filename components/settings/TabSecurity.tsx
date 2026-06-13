@@ -343,6 +343,80 @@ export function TabSecurity() {
           </div>
         )}
       </section>
+
+      {/* Danger Zone */}
+      <section className="rounded-lg border border-danger/30 bg-danger/5">
+        <div className="flex items-center gap-2 border-b border-danger/20 px-4 py-3">
+          <span className="text-[13px] font-semibold text-danger">Danger Zone</span>
+        </div>
+        <div className="divide-y divide-danger/10">
+
+          {/* Export data */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-fg">Export restaurant data</p>
+              <p className="text-[11px] text-fg-subtle mt-0.5">
+                Download all your orders, menu items, and settings as a JSON file.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  const { data } = await api.get("/admin/export");
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `steward-export-${new Date().toISOString().slice(0, 10)}.json`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  toast.success("Data exported successfully");
+                } catch {
+                  toast.error("Export failed — try again");
+                }
+              }}
+              className="shrink-0"
+            >
+              Export data
+            </Button>
+          </div>
+
+          {/* Reset settings */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-fg">Reset all settings</p>
+              <p className="text-[11px] text-fg-subtle mt-0.5">
+                Restore all settings to their default values. Your menu and orders are not affected.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (window.confirm("Reset all settings to defaults? This cannot be undone.")) {
+                  api
+                    .post("/admin/settings/reset")
+                    .then(() => {
+                      toast.success("Settings reset to defaults");
+                      window.location.reload();
+                    })
+                    .catch(() => toast.error("Reset failed — try again"));
+                }
+              }}
+              className="shrink-0 border-danger/30 text-danger hover:bg-danger/10 hover:border-danger/50"
+            >
+              Reset settings
+            </Button>
+          </div>
+
+        </div>
+      </section>
     </div>
   );
 }
