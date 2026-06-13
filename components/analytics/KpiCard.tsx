@@ -10,6 +10,7 @@ interface KpiCardProps {
   loading?: boolean;
   trend?: { value: number; label?: string };
   accent?: "accent" | "info" | "success" | "danger" | "warning";
+  size?: "default" | "lg";
 }
 
 const accentMap = {
@@ -20,11 +21,11 @@ const accentMap = {
   warning: { text: "text-warning",  glow: "group-hover:shadow-[0_0_20px_rgba(245,158,11,0.12)]",  icon: "bg-warning/10 border-warning/20" },
 };
 
-function KpiSkeleton() {
+function KpiSkeleton({ isLg }: { isLg?: boolean }) {
   return (
     <div className="animate-pulse space-y-3">
       <div className="h-3 w-16 rounded-md bg-surface-3" />
-      <div className="h-7 w-24 rounded-md bg-surface-3" />
+      <div className={cn("w-24 rounded-md bg-surface-3", isLg ? "h-9" : "h-7")} />
       <div className="h-3 w-12 rounded-md bg-surface-3" />
     </div>
   );
@@ -33,14 +34,16 @@ function KpiSkeleton() {
 // Memoized — only re-renders when its own props change
 export const KpiCard = memo(function KpiCard({
   title, value, icon: Icon, description, loading,
-  accent = "accent", trend,
+  accent = "accent", trend, size = "default",
 }: KpiCardProps) {
   const { text, glow, icon: iconBg } = accentMap[accent];
+  const isLg = size === "lg";
 
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-xl border border-border bg-surface p-4",
+        "group relative overflow-hidden rounded-xl border border-border bg-surface",
+        isLg ? "p-5" : "p-4",
         "transition-all duration-200",
         "hover:border-border-strong",
         // Subtle inner top highlight for gloss effect
@@ -53,20 +56,22 @@ export const KpiCard = memo(function KpiCard({
       <div className="flex items-center justify-between mb-3.5">
         <span className="label-xs">{title}</span>
         <div className={cn(
-          "grid h-7 w-7 place-items-center rounded-lg border transition-colors",
+          "grid place-items-center rounded-lg border transition-colors",
+          isLg ? "h-8 w-8" : "h-7 w-7",
           iconBg
         )}>
-          <Icon className={cn("h-3.5 w-3.5", text)} />
+          <Icon className={cn(isLg ? "h-4 w-4" : "h-3.5 w-3.5", text)} />
         </div>
       </div>
 
       {/* Value */}
       {loading ? (
-        <KpiSkeleton />
+        <KpiSkeleton isLg={isLg} />
       ) : (
         <>
           <div className={cn(
-            "text-[24px] font-semibold tracking-tight text-fg num leading-none",
+            isLg ? "text-[28px] sm:text-[32px]" : "text-[22px] sm:text-[24px]",
+            "font-semibold tracking-tight text-fg num leading-none",
             "transition-colors duration-150"
           )}>
             {value}

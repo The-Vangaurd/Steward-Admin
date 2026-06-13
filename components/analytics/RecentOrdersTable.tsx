@@ -53,6 +53,25 @@ function TableSkeleton() {
   );
 }
 
+function CardSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="rounded-xl border border-border bg-surface-2 p-3.5 space-y-2.5 animate-pulse">
+          <div className="flex justify-between">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <div className="flex justify-between">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-3 w-14" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function RecentOrdersTable({ params, activeRange }: RecentOrdersTableProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["recent-orders-table", params, activeRange],
@@ -69,7 +88,57 @@ export function RecentOrdersTable({ params, activeRange }: RecentOrdersTableProp
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
-      <div className="overflow-x-auto">
+
+      {/* ── Mobile card list (hidden on md+) ──────────────────────────────── */}
+      <div className="md:hidden">
+        {isLoading ? (
+          <CardSkeleton />
+        ) : orders.length === 0 ? (
+          <p className="py-10 text-center text-[12px] text-fg-subtle">No orders in this period</p>
+        ) : (
+          <div className="space-y-2.5">
+            {orders.map((order: Order, idx: number) => (
+              <Link key={order.id} href="/orders">
+                <div className="rounded-xl border border-border bg-surface-2 hover:bg-surface-3 transition-colors p-3.5">
+                  {/* Row 1 — order number + status */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-mono text-[13px] font-semibold text-fg">
+                      #{order.orderNumber}
+                    </span>
+                    <StatusBadge status={order.status} />
+                  </div>
+                  {/* Row 2 — customer + amount */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[11px] text-fg-muted tabular-nums shrink-0">
+                        {String(idx + 1).padStart(2, "0")}
+                      </span>
+                      <span className="text-[12px] text-fg truncate">
+                        {order.customerName ?? "Guest"}
+                      </span>
+                      {order.tableNumber && (
+                        <span className="text-[11px] text-fg-subtle shrink-0">
+                          · Table {order.tableNumber}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[13px] font-semibold text-fg tabular-nums ml-2 shrink-0">
+                      {formatCurrency(order.totalAmount ?? 0)}
+                    </span>
+                  </div>
+                  {/* Row 3 — date */}
+                  <div className="mt-1 text-[11px] text-fg-subtle">
+                    {format(new Date(order.createdAt), "MMM do, yyyy")}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Desktop table (hidden on <md) ─────────────────────────────────── */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-[640px]">
           <thead>
             <tr className="border-b border-border">
@@ -127,3 +196,4 @@ export function RecentOrdersTable({ params, activeRange }: RecentOrdersTableProp
     </div>
   );
 }
+

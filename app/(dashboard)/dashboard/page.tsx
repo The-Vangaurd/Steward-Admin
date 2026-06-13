@@ -213,25 +213,25 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="px-5 py-5 lg:px-6 lg:py-6 space-y-5 max-w-[1400px] mx-auto">
+    <div className="px-3 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6 space-y-4 sm:space-y-5 max-w-[1400px] mx-auto">
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-end justify-between gap-4 pb-1 border-b border-border">
-        <div>
-          <div className="label-xs mb-1.5">{restaurant?.name ?? "Restaurant"}</div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-semibold tracking-tight text-fg">
+      {/* ── Header ───────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-border">
+        <div className="min-w-0">
+          <div className="label-xs mb-1">{restaurant?.name ?? "Restaurant"}</div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-fg truncate">
               {getGreeting()}, {user?.firstName ?? "there"}.
             </h2>
             {liveActiveCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-bold text-warning animate-pulse">
+              <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-bold text-warning animate-pulse shrink-0">
                 <Zap className="h-2.5 w-2.5" />
                 {liveActiveCount} active
               </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
 
           {/* Manual refresh button */}
           <button
@@ -316,16 +316,21 @@ export default function DashboardPage() {
 
 
 
-      {/* ── KPI Cards ──────────────────────────────────────────────────────── */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <KpiCard
-          title="Revenue"
-          value={d ? formatCurrency(d.totalRevenue) : "₹0.00"}
-          icon={IndianRupee}
-          loading={loading}
-          accent="accent"
-          description={activeRange === "today" ? "today so far" : undefined}
-        />
+      {/* ── KPI Cards ─────────────────────────────────────────────────────────────── */}
+      {/* Revenue spans full width on mobile, then joins 2-col on sm, 5-col on xl */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {/* Revenue — full-width hero card on mobile */}
+        <div className="col-span-2 sm:col-span-2 lg:col-span-1">
+          <KpiCard
+            title="Revenue"
+            value={d ? formatCurrency(d.totalRevenue) : "₹0.00"}
+            icon={IndianRupee}
+            loading={loading}
+            accent="accent"
+            size="lg"
+            description={activeRange === "today" ? "today so far" : undefined}
+          />
+        </div>
         <KpiCard
           title="Orders"
           value={d ? String(d.totalOrders) : "0"}
@@ -371,15 +376,15 @@ export default function DashboardPage() {
         </Suspense>
       </div>
 
-      {/* ── Hourly Distribution ─────────────────────────────────────────────── */}
+      {/* ── Hourly Distribution ───────────────────────────────────────────────────────── */}
       {hourlyData && hourlyData.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-5">
+        <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="h-4 w-4 text-accent" />
             <span className="text-[13px] font-semibold text-fg">Orders by Hour</span>
-            <span className="text-[11px] text-fg-subtle ml-1">Peak activity distribution</span>
+            <span className="hidden sm:inline text-[11px] text-fg-subtle ml-1">Peak activity distribution</span>
           </div>
-          <div className="flex items-end gap-1 h-24">
+          <div className="flex items-end gap-0.5 sm:gap-1 h-20 sm:h-24">
             {Array.from({ length: 24 }, (_, hour) => {
               const entry = hourlyData.find((h: HourlyDataPoint) => h.hour === hour);
               const count = entry?.count ?? 0;
@@ -395,8 +400,11 @@ export default function DashboardPage() {
                     style={{ height: `${Math.max(pct, count > 0 ? 8 : 4)}%` }}
                     title={`${hour}:00 — ${count} orders`}
                   />
+                  {hour % 6 === 0 && (
+                    <span className="sm:hidden text-[7px] text-fg-subtle num">{hour}h</span>
+                  )}
                   {hour % 4 === 0 && (
-                    <span className="text-[8px] text-fg-subtle num">{hour}h</span>
+                    <span className="hidden sm:inline text-[8px] text-fg-subtle num">{hour}h</span>
                   )}
                 </div>
               );
