@@ -61,37 +61,38 @@ export function useKitchenSocket({ enabled = true }: UseKitchenSocketOptions = {
       "status" in payload
     ) {
       const updated = payload as KitchenOrder;
-      queryClient.setQueryData<KitchenOrder[]>(
-        KITCHEN_ORDERS_QUERY_KEY,
-        (current: KitchenOrder[] | undefined) => {
-          if (!current) return current;
-          const idx = current.findIndex((o: KitchenOrder) => o.id === updated.id);
-          if (idx === -1) {
-            // Only invalidate if it's a non-terminal status, meaning a new active order was moved
-            if (updated.status !== "COMPLETED" && updated.status !== "CANCELLED") {
-              scheduleInvalidate();
-            }
-            return current;
-          }
-
-          // If the order has transitioned to COMPLETED or CANCELLED, remove it from active queue
-          if (updated.status === "COMPLETED" || updated.status === "CANCELLED") {
-            return current.filter((o: KitchenOrder) => o.id !== updated.id);
-          }
-
-          const next = [...current];
-          const existing = current[idx];
-          next[idx] = {
-            ...existing,
-            ...updated,
-            items: existing.items.map((item) => {
-              const updatedItem = updated.items?.find((ui: any) => ui.id === item.id);
-              return updatedItem ? { ...item, ...updatedItem } : item;
-            }),
-          };
-          return next;
+      
+      const patchCache = (current: KitchenOrder[] | undefined) => {
+        if (!current) return current;
+        const idx = current.findIndex((o: KitchenOrder) => o.id === updated.id);
+        if (idx === -1) {
+          return current;
         }
-      );
+
+        // If the order has transitioned to COMPLETED or CANCELLED, remove it from active queue
+        if (updated.status === "COMPLETED" || updated.status === "CANCELLED") {
+          return current.filter((o: KitchenOrder) => o.id !== updated.id);
+        }
+
+        const next = [...current];
+        const existing = current[idx];
+        next[idx] = {
+          ...existing,
+          ...updated,
+          items: existing.items.map((item) => {
+            const updatedItem = updated.items?.find((ui: any) => ui.id === item.id);
+            return updatedItem ? { ...item, ...updatedItem } : item;
+          }),
+        };
+        return next;
+      };
+
+      queryClient.setQueryData<KitchenOrder[]>(KITCHEN_ORDERS_QUERY_KEY, patchCache);
+      queryClient.setQueryData<KitchenOrder[]>([...KITCHEN_ORDERS_QUERY_KEY, "kds"], patchCache);
+      queryClient.setQueryData<KitchenOrder[]>(["kitchen-home-queue"], patchCache);
+      
+      // Also invalidate to ensure other counters (like completed today) are fresh
+      scheduleInvalidate();
     } else {
       scheduleInvalidate();
     }
