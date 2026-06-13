@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { BanknoteIcon, RefreshCw, CheckCircle2, Clock, ShoppingBag, Utensils, Package, X } from "lucide-react";
 import api from "@/lib/axios";
@@ -68,10 +69,12 @@ function StatusBadge({ status }: { status: string }) {
 function OrderCard({
   order,
   onPay,
+  onDelete,
   isPaying,
 }: {
   order: PayAtCounterOrder;
   onPay: () => void;
+  onDelete: () => void;
   isPaying: boolean;
 }) {
   const TypeIcon = ORDER_TYPE_ICON[order.orderType] ?? ShoppingBag;
@@ -133,15 +136,10 @@ function OrderCard({
             <Button
               size="sm"
               variant="destructive"
-              onClick={onPay}
-              disabled={isPaying}
+              onClick={onDelete}
               className="gap-1.5 bg-danger hover:bg-danger/90 text-white border-0"
             >
-              {isPaying ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <X className="h-3.5 w-3.5" />
-              )}
+              <X className="h-3.5 w-3.5" />
               Delete
             </Button>
           )}
@@ -209,6 +207,7 @@ function StatPill({ icon: Icon, label, value }: { icon: React.ElementType; label
 
 export default function PayAtCounterPage() {
   const queryClient = useQueryClient();
+  const [hiddenOrders, setHiddenOrders] = useState<Set<string>>(new Set());
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["pay-at-counter"],
@@ -223,7 +222,7 @@ export default function PayAtCounterPage() {
     refetchInterval: 30_000,
   });
 
-  const orders: PayAtCounterOrder[] = data?.data ?? [];
+  const orders: PayAtCounterOrder[] = (data?.data ?? []).filter((o: PayAtCounterOrder) => !hiddenOrders.has(o.id));
   const totalDue = orders.reduce((sum: number, o: PayAtCounterOrder) => sum + Number(o.totalAmount), 0);
 
   const markPaidMutation = useMutation({
@@ -308,8 +307,9 @@ export default function PayAtCounterPage() {
             <OrderCard
               key={order.id}
               order={order}
-              isPaying={markPaidMutation.isPending && markPaidMutation.variables === order.id}
               onPay={() => markPaidMutation.mutate(order.id)}
+              onDelete={() => setHiddenOrders((prev: Set<string>) => new Set(prev).add(order.id))}
+              isPaying={markPaidMutation.isPending && markPaidMutation.variables === order.id}
             />
           ))}
         </div>
