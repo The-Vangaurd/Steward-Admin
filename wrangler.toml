@@ -6,4 +6,4 @@ pages_build_output_dir = ".vercel/output/static"
 [vars]
 NEXT_PUBLIC_API_URL = "https://steward-backend-qwd2.onrender.com/v1"
 NEXT_PUBLIC_WS_URL = "https://steward-backend-qwd2.onrender.com"
-NEXT_PUBLIC_MENU_URL = "https://steward-menu.pages.dev"
+NEXT_PUBLIC_MENU_URL = "https://menu-6lg.pages.dev"

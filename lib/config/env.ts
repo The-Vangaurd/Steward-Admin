@@ -29,7 +29,7 @@ function validate(name: string, value: string | undefined, fallback: string): st
 
 export const API_URL = validate("NEXT_PUBLIC_API_URL", rawApiUrl, "https://steward-backend-qwd2.onrender.com/v1");
 export const WS_URL = validate("NEXT_PUBLIC_WS_URL", rawWsUrl, "https://steward-backend-qwd2.onrender.com");
-export const MENU_URL = validate("NEXT_PUBLIC_MENU_URL", rawMenuUrl, "https://steward-menu.pages.dev");
+export const MENU_URL = validate("NEXT_PUBLIC_MENU_URL", rawMenuUrl, "https://menu-6lg.pages.dev");
 
 // Startup diagnostics (Only runs server-side during module evaluation)
 if (typeof window === "undefined") {
