@@ -235,6 +235,16 @@ export default function PayAtCounterPage() {
     },
   });
 
+  const rejectPaymentMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data } = await api.post(`/orders/admin/${orderId}/reject-payment`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pay-at-counter"] });
+    },
+  });
+
   return (
     <div className="px-5 py-5 lg:px-6 lg:py-6 space-y-5 max-w-[1200px] mx-auto">
       {/* Header */}
@@ -308,7 +318,10 @@ export default function PayAtCounterPage() {
               key={order.id}
               order={order}
               onPay={() => markPaidMutation.mutate(order.id)}
-              onDelete={() => setHiddenOrders((prev: Set<string>) => new Set(prev).add(order.id))}
+              onDelete={() => {
+                setHiddenOrders((prev: Set<string>) => new Set(prev).add(order.id));
+                rejectPaymentMutation.mutate(order.id);
+              }}
               isPaying={markPaidMutation.isPending && markPaidMutation.variables === order.id}
             />
           ))}
